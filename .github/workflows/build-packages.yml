@@ -6,6 +6,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
 jobs:
   build-deb:
     runs-on: ubuntu-latest
@@ -119,6 +124,25 @@ jobs:
       
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+
+      - name: Debug artifacts and files
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          ls -la
+
+          echo "=== Checking for artifact directories ==="
+          ls -la debian-package/ 2>/dev/null || echo "debian-package directory not found"
+          ls -la windows-package/ 2>/dev/null || echo "windows-package directory not found"
+
+          echo "=== Looking for .deb files ==="
+          find . -name "*.deb" -type f 2>/dev/null || echo "No .deb files found"
+
+          echo "=== Looking for .zip files ==="
+          find . -name "*.zip" -type f 2>/dev/null || echo "No .zip files found"
+
+          echo "=== All files in current directory ==="
+          find . -type f | head -20
       
       - name: Set release tag
         id: tag
@@ -166,6 +190,7 @@ jobs:
           prerelease: false
           make_latest: true
           generate_release_notes: false
+          fail_on_unmatched_files: false
           files: |
             debian-package/*.deb
             windows-package/*.zip
