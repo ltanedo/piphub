@@ -29,13 +29,10 @@ jobs:
           mkdir -p debian/piphub/DEBIAN
           
           # Copy scripts
-          cp piphub.bash debian/piphub/usr/bin/piphub-bash
+          cp piphub.bash debian/piphub/usr/bin/piphub
           cp piphub.ps1 debian/piphub/usr/bin/piphub-ps
-          chmod +x debian/piphub/usr/bin/piphub-bash
+          chmod +x debian/piphub/usr/bin/piphub
           chmod +x debian/piphub/usr/bin/piphub-ps
-          
-          # Create symlink for default command
-          ln -sf piphub-bash debian/piphub/usr/bin/piphub
           
           # Get version from tag or use default for manual dispatch
           if [[ "$GITHUB_REF" =~ refs/tags/v(.+) ]]; then
@@ -81,17 +78,16 @@ jobs:
           New-Item -ItemType Directory -Force -Path "windows-package/bin"
           New-Item -ItemType Directory -Force -Path "windows-package/scripts"
           
-          # Copy scripts
-          Copy-Item "piphub.bash" "windows-package/bin/piphub-bash"
+          # Copy PowerShell script only
           Copy-Item "piphub.ps1" "windows-package/bin/piphub-ps.ps1"
           
-          # Create batch wrapper for bash script (for WSL)
+          # Create main piphub command (CMD files can be called without extension)
           @'
           @echo off
-          wsl bash -c "$(wslpath '%~dp0piphub-bash') %*"
-          '@ | Out-File -FilePath "windows-package/bin/piphub-bash.bat" -Encoding ascii
-          
-          # Create batch wrapper for PowerShell script
+          powershell -ExecutionPolicy Bypass -File "%~dp0piphub-ps.ps1" %*
+          '@ | Out-File -FilePath "windows-package/bin/piphub.cmd" -Encoding ascii
+
+          # Also create .bat version for compatibility
           @'
           @echo off
           powershell -ExecutionPolicy Bypass -File "%~dp0piphub-ps.ps1" %*
@@ -217,13 +213,11 @@ jobs:
             
             ### Usage
             ```bash
-            # Linux/WSL
+            # Linux
             piphub              # Uses bash version
-            piphub-bash         # Explicitly use bash version
-            
+
             # Windows
-            piphub.bat          # Default (PowerShell version)
-            piphub-bash.bat     # Uses WSL bash version
+            piphub              # Uses PowerShell version
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

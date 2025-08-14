@@ -202,11 +202,9 @@ piphub.bat
 
 | Command | Platform | Description |
 |---------|----------|-------------|
-| `piphub` | Linux/macOS | Default (bash version) |
-| `piphub-bash` | Linux/macOS/WSL | Bash version explicitly |
-| `piphub.bat` | Windows | Default (PowerShell version) |
-| `piphub-bash.bat` | Windows | Bash version via WSL |
-| `piphub-ps.ps1` | All | PowerShell version directly |
+| `piphub` | Linux/macOS | Uses bash version |
+| `piphub` | Windows | Uses PowerShell version |
+| `piphub-ps.ps1` | All | PowerShell script directly |
 
 ## Requirements
 
