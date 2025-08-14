@@ -144,8 +144,16 @@ info "Version: $VERSION"
 info "Tag: $TAG"
 info "Target branch: $TARGET_BRANCH"
 
-# Ensure gh is available and authenticated
-command -v gh >/dev/null 2>&1 || abort "gh (GitHub CLI) not found in PATH. Install with: sudo apt-get install gh (or see GitHub docs)."
+# Check for required dependencies
+command -v git >/dev/null 2>&1 || abort "git not found in PATH. Install with: sudo apt-get install git"
+command -v python3 >/dev/null 2>&1 || abort "python3 not found in PATH. Install with: sudo apt-get install python3"
+
+# Check for gh (GitHub CLI)
+if ! command -v gh >/dev/null 2>&1; then
+  abort "gh (GitHub CLI) not found in PATH. Install with: sudo apt-get install gh (or see GitHub docs)."
+fi
+
+# Ensure gh is authenticated
 if ! gh auth status >/dev/null 2>&1; then
   info "gh not authenticated. Launching gh auth login..."
   gh auth login || abort "gh auth login failed"
@@ -189,6 +197,12 @@ git push origin "$TARGET_BRANCH" --tags
 
 # Build Python package (sdist + wheel)
 info "Installing/Updating build tooling"
+
+# Check if pip is available
+if ! python3 -m pip --version >/dev/null 2>&1; then
+  abort "python3-pip not found. Install with: sudo apt-get install python3-pip"
+fi
+
 python3 -m pip install --upgrade build >/dev/null --break-system-packages
 
 info "Building package artifacts"
