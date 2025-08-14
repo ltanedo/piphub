@@ -1,8 +1,90 @@
-# PipHub Usage Guide
+# PipHub - GitHub Release Automation Tools
 
-PipHub now uses a single `piphub.yaml` configuration file that contains all your Python package setup information. The scripts automatically generate `setup.py` from this configuration and handle the entire release process.
+PipHub provides command-line tools for automating GitHub releases and Python package publishing. It includes scripts for both bash and PowerShell environments with YAML-based configuration.
+
+## Features
+
+- 🚀 **Automated GitHub Releases** - Create releases with one command
+- 📦 **Python Package Building** - Automatic wheel and source distribution creation
+- 🔧 **YAML Configuration** - Simple setup.py generation from YAML
+- 🌐 **Cross-Platform** - Works on Linux, macOS, and Windows
+- 📋 **Flexible Installation** - Multiple installation methods available
+
+## Quick Installation
+
+### Linux/macOS
+```bash
+# One-line install
+curl -fsSL https://raw.githubusercontent.com/ltanedo/piphub/main/install.sh | bash
+
+# Manual install
+wget https://raw.githubusercontent.com/ltanedo/piphub/main/install.sh
+chmod +x install.sh
+./install.sh
+```
+
+### Windows
+```powershell
+# One-line install
+iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex
+
+# Manual install
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1" -OutFile "install.ps1"
+.\install.ps1
+
+# System-wide install (requires admin)
+.\install.ps1 -System
+
+# Custom directory install
+.\install.ps1 -InstallDir "C:\tools\piphub"
+```
+
+## Package Manager Installation
+
+### Linux (Debian/Ubuntu)
+```bash
+# Download latest .deb package
+wget https://github.com/ltanedo/piphub/releases/latest/download/piphub_*_all.deb
+sudo dpkg -i piphub_*_all.deb
+
+# Fix dependencies if needed
+sudo apt-get install -f
+```
+
+### Windows (Manual from Releases)
+```powershell
+# Download and extract ZIP
+$version = "1.0.0"  # Replace with latest version
+Invoke-WebRequest -Uri "https://github.com/ltanedo/piphub/releases/download/v$version/piphub-windows-$version.zip" -OutFile "piphub.zip"
+Expand-Archive -Path "piphub.zip" -DestinationPath "C:\Program Files\piphub"
+
+# Add to PATH
+$env:PATH += ";C:\Program Files\piphub\bin"
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH, "User")
+```
+
+## Advanced Installation Options
+
+### Custom Installation Directory
+
+**Linux/macOS:**
+```bash
+# Install to custom directory
+curl -fsSL https://raw.githubusercontent.com/ltanedo/clify-py/main/install.sh | INSTALL_DIR="$HOME/bin" bash
+```
+
+**Windows:**
+```powershell
+# Install to custom directory
+iwr -useb https://raw.githubusercontent.com/ltanedo/clify-py/main/install.ps1 | iex -Args @{InstallDir="C:\tools\piphub"}
+
+# System-wide installation (requires administrator privileges)
+iwr -useb https://raw.githubusercontent.com/ltanedo/clify-py/main/install.ps1 | iex -Args @{System=$true}
+```
 
 ## Configuration File: `piphub.yaml`
+
+PipHub uses a single `piphub.yaml` configuration file that contains all your Python package setup information. The scripts automatically generate `setup.py` from this configuration and handle the entire release process.
 
 ### Required Fields
 
@@ -115,6 +197,32 @@ piphub.bat
 4. **Builds** Python package (wheel and source distribution)
 5. **Creates GitHub release** with built packages
 6. **Updates `requirements.txt`** with install command
+
+## Available Commands
+
+| Command | Platform | Description |
+|---------|----------|-------------|
+| `piphub` | Linux/macOS | Default (bash version) |
+| `piphub-bash` | Linux/macOS/WSL | Bash version explicitly |
+| `piphub.bat` | Windows | Default (PowerShell version) |
+| `piphub-bash.bat` | Windows | Bash version via WSL |
+| `piphub-ps.ps1` | All | PowerShell version directly |
+
+## Requirements
+
+### Linux/macOS
+- `bash` >= 4.0
+- `git`
+- `gh` (GitHub CLI)
+- `python3`
+- `python3-pip`
+
+### Windows
+- PowerShell 5.1+ or PowerShell Core
+- `git`
+- `gh` (GitHub CLI)
+- `python`
+- For bash version: WSL with bash
 
 ## Advanced Features
 
@@ -239,3 +347,57 @@ python -m build
 3. **Consistent formatting** - Scripts handle Python syntax correctly
 4. **Version control friendly** - YAML is easier to read and edit
 5. **Cross-platform** - Same configuration works on Linux and Windows
+
+## Uninstallation
+
+### Linux (if installed via .deb)
+```bash
+sudo apt remove piphub
+```
+
+### Linux/macOS (if installed via script)
+```bash
+sudo rm -f /usr/local/bin/piphub /usr/local/bin/piphub-bash /usr/local/bin/piphub-ps.ps1
+# Or for user installation:
+rm -f ~/.local/bin/piphub ~/.local/bin/piphub-bash ~/.local/bin/piphub-ps.ps1
+```
+
+### Windows
+```powershell
+# Remove installation directory
+Remove-Item -Recurse -Force "C:\Program Files\piphub"
+# Remove from PATH manually via System Properties > Environment Variables
+```
+
+## Installation Troubleshooting
+
+### Command not found
+- Ensure the installation directory is in your PATH
+- Restart your terminal after installation
+- Check installation with `which piphub` (Linux/macOS) or `where piphub` (Windows)
+
+### Permission denied
+- On Linux: Ensure scripts are executable with `chmod +x`
+- On Windows: Check PowerShell execution policy with `Get-ExecutionPolicy`
+
+### WSL issues (Windows)
+- Install WSL: `wsl --install`
+- Ensure bash is available in WSL: `wsl bash --version`
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- 🐛 [Report Issues](https://github.com/ltanedo/piphub/issues)
+- 📖 [Documentation](https://github.com/ltanedo/piphub#readme)
+- 💬 [Discussions](https://github.com/ltanedo/piphub/discussions)

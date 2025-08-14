@@ -5,14 +5,14 @@
 # - git configured with access to your repo remote (origin)
 # - gh (GitHub CLI) installed and authenticated: gh auth login
 # - Python build tooling: python3 -m pip install --upgrade build
-# - A piphub.yaml file at the repo root with setup() function arguments
+# - A piphub.yml file at the repo root with setup() function arguments
 #
 # Usage from Windows (ensures all work is done in WSL):
 #   wsl bash -lc './piphub.bash'
 #
 set -euo pipefail
 
-CFG="piphub.yaml"
+CFG="piphub.yml"
 
 abort() { echo "Error: $*" >&2; exit 1; }
 info()  { echo "[INFO] $*"; }

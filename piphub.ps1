@@ -13,7 +13,7 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-$CFG = "piphub.yaml"
+$CFG = "piphub.yml"
 
 function Abort {
     param([string]$Message)
