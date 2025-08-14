@@ -135,6 +135,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
+          name: "PipHub ${{ steps.tag.outputs.version }}"
+          draft: false
+          prerelease: false
           files: |
             debian-package/*.deb
             windows-package/*.zip
@@ -144,18 +147,19 @@ jobs:
             ### Linux (Debian/Ubuntu)
             ```bash
             # Download and install the .deb package
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name || 'v1.0.0' }}/piphub_*_all.deb
-            sudo dpkg -i piphub_*_all.deb
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/piphub_${{ steps.tag.outputs.version }}_all.deb
+            sudo dpkg -i piphub_${{ steps.tag.outputs.version }}_all.deb
 
             # Or install dependencies if needed
             sudo apt-get install -f
             ```
-            
+
             ### Windows
             ```powershell
             # Download and extract the ZIP file
-            # Add the bin directory to your PATH
-            # Then you can use: piphub, piphub-bash.bat, or piphub-ps.ps1
+            Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/piphub-windows-${{ steps.tag.outputs.version }}.zip" -OutFile "piphub.zip"
+            Expand-Archive -Path "piphub.zip" -DestinationPath "C:\Program Files\piphub"
+            # Add C:\Program Files\piphub\bin to your PATH
             ```
             
             ### Usage
