@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	# Install bash script
+	install -D -m 755 piphub.bash debian/piphub/usr/bin/piphub-bash
+	
+	# Install PowerShell script
+	install -D -m 755 piphub.ps1 debian/piphub/usr/bin/piphub-ps
+	
+	# Create symlink for default command
+	ln -sf piphub-bash debian/piphub/usr/bin/piphub
+	
+	# Install man pages if they exist
+	if [ -f piphub.1 ]; then \
+		install -D -m 644 piphub.1 debian/piphub/usr/share/man/man1/piphub.1; \
+		install -D -m 644 piphub.1 debian/piphub/usr/share/man/man1/piphub-bash.1; \
+		install -D -m 644 piphub.1 debian/piphub/usr/share/man/man1/piphub-ps.1; \
+	fi

@@ -1,0 +1,25 @@
+Source: piphub
+Section: utils
+Priority: optional
+Maintainer: ltanedo <lloydtan@buffalo.edu>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.0
+Homepage: https://github.com/ltanedo/clify-py
+Vcs-Browser: https://github.com/ltanedo/clify-py
+Vcs-Git: https://github.com/ltanedo/clify-py.git
+
+Package: piphub
+Architecture: all
+Depends: ${misc:Depends}, bash (>= 4.0), git, gh, python3, python3-pip
+Recommends: python3-build
+Description: GitHub release automation tools
+ PipHub provides command-line tools for automating GitHub releases
+ and Python package publishing. It includes scripts for both bash
+ and PowerShell environments.
+ .
+ Features:
+  - Automated GitHub release creation
+  - Python package building and uploading
+  - YAML-based configuration
+  - Support for draft and prerelease flags
+  - Automatic version detection from setup.py

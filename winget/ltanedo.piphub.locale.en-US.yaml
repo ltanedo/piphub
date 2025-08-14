@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.4.0.schema.json
+
+PackageIdentifier: ltanedo.piphub
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: ltanedo
+PublisherUrl: https://github.com/ltanedo
+PublisherSupportUrl: https://github.com/ltanedo/clify-py/issues
+Author: ltanedo
+PackageName: PipHub
+PackageUrl: https://github.com/ltanedo/clify-py
+License: MIT
+LicenseUrl: https://github.com/ltanedo/clify-py/blob/main/LICENSE
+Copyright: Copyright (c) 2025 ltanedo
+ShortDescription: GitHub release automation tools
+Description: |-
+  PipHub provides command-line tools for automating GitHub releases and Python package publishing.
+  It includes scripts for both bash and PowerShell environments with YAML-based configuration.
+Moniker: piphub
+Tags:
+- automation
+- cli
+- developer-tools
+- git
+- github
+- python
+- release
+- tools
+ManifestType: defaultLocale
+ManifestVersion: 1.4.0

@@ -1,0 +1,10 @@
+piphub (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Added piphub-bash command for Linux/WSL environments
+  * Added piphub-ps command for PowerShell environments
+  * YAML-based configuration support
+  * Automatic GitHub release creation and asset uploading
+  * Python package building integration
+
+ -- ltanedo <lloydtan@buffalo.edu>  Wed, 14 Aug 2025 12:00:00 +0000
