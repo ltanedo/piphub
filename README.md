@@ -41,6 +41,9 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ltanedo/piphub/main/in
 
 #### Proxy-friendly (Zscaler) tips
 ```powershell
+# Use winget to install Git, clone repo, install to WindowsApps (most proxy-friendly)
+iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex -Args @{ UseWinget = $true }
+
 # Use your Windows credentials for the corporate proxy
 iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex -Args @{ ProxyUseDefaultCredentials = $true }
 

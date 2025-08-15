@@ -16,6 +16,9 @@ Usage examples:
 
   # From a cloned repo/workspace without any downloads (copies local piphub.ps1)
   .\install.ps1 -FromWorkspace
+
+  # Use winget to install Git, clone repo, and install to WindowsApps (proxy-friendly)
+  .\install.ps1 -UseWinget
 #>
 param(
   [string]$InstallDir,
@@ -23,7 +26,8 @@ param(
   [string]$Proxy,
   [switch]$ProxyUseDefaultCredentials,
   [switch]$UseBits,
-  [switch]$FromWorkspace
+  [switch]$FromWorkspace,
+  [switch]$UseWinget
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,10 +38,13 @@ function Abort([string]$m) { Write-Error $m; exit 1 }
 
 # Choose install directory
 if (-not $InstallDir) {
-  if ($System) { $InstallDir = "C:\\Program Files\\piphub" }
+  if ($UseWinget) { $InstallDir = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps' }
+  elseif ($System) { $InstallDir = "C:\\Program Files\\piphub" }
   else { $InstallDir = Join-Path $env:LOCALAPPDATA 'piphub' }
 }
-$BinDir = Join-Path $InstallDir 'bin'
+
+if ($UseWinget) { $BinDir = $InstallDir }
+else { $BinDir = Join-Path $InstallDir 'bin' }
 
 # Check admin if System-wide
 if ($System) {
@@ -96,11 +103,52 @@ function Download-File($url, $outPath) {
 # Perform install
 Ensure-Dir $BinDir
 
-$piphubPs = Join-Path $BinDir 'piphub-ps.ps1'
-$piphubCmd = Join-Path $BinDir 'piphub.cmd'
-$piphubBat = Join-Path $BinDir 'piphub.bat'
+if ($UseWinget) {
+  $piphubPs = Join-Path $BinDir 'piphub-ps.ps1'
+  $piphubCmd = Join-Path $BinDir 'piphub.cmd'
+  $piphubBat = Join-Path $BinDir 'piphub.bat'
+} else {
+  $piphubPs = Join-Path $BinDir 'piphub-ps.ps1'
+  $piphubCmd = Join-Path $BinDir 'piphub.cmd'
+  $piphubBat = Join-Path $BinDir 'piphub.bat'
+}
 
-if ($FromWorkspace -and (Test-Path (Join-Path (Get-Location) 'piphub.ps1'))) {
+if ($UseWinget) {
+  Info "Using winget to install Git and clone repo (proxy-friendly)"
+
+  # Install Git via winget if not available
+  try {
+    $null = Get-Command git -ErrorAction Stop
+    Info "Git already available"
+  } catch {
+    Info "Installing Git via winget..."
+    winget install -e --id Git.Git --silent --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -ne 0) {
+      Abort "Failed to install Git via winget"
+    }
+    # Refresh PATH to pick up Git
+    $env:PATH = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH', 'User')
+  }
+
+  # Clone repo to temp location
+  $tempRepo = Join-Path $env:TEMP "piphub-repo-$(Get-Random)"
+  Info "Cloning piphub repo to: $tempRepo"
+  git clone https://github.com/ltanedo/piphub.git $tempRepo
+  if ($LASTEXITCODE -ne 0) {
+    Abort "Failed to clone piphub repository"
+  }
+
+  # Copy the script
+  $sourceScript = Join-Path $tempRepo 'piphub.ps1'
+  if (-not (Test-Path $sourceScript)) {
+    Abort "piphub.ps1 not found in cloned repo"
+  }
+  Copy-Item -Force $sourceScript $piphubPs
+
+  # Cleanup temp repo
+  Remove-Item -Recurse -Force $tempRepo -ErrorAction SilentlyContinue
+
+} elseif ($FromWorkspace -and (Test-Path (Join-Path (Get-Location) 'piphub.ps1'))) {
   Info "Copying local piphub.ps1 from workspace"
   Copy-Item -Force (Join-Path (Get-Location) 'piphub.ps1') $piphubPs
 } else {
@@ -123,9 +171,14 @@ powershell -ExecutionPolicy Bypass -File "%~dp0piphub-ps.ps1" %*
 powershell -ExecutionPolicy Bypass -File "%~dp0piphub-ps.ps1" %*
 "@ | Set-Content -Encoding ascii -Path $piphubBat
 
-# Add to PATH
-if ($System) { Add-ToPath -dir $BinDir -scope Machine }
-else { Add-ToPath -dir $BinDir -scope User }
+# Add to PATH (skip for UseWinget since WindowsApps is already on PATH)
+if ($UseWinget) {
+  Info "WindowsApps directory is already on PATH"
+} elseif ($System) {
+  Add-ToPath -dir $BinDir -scope Machine
+} else {
+  Add-ToPath -dir $BinDir -scope User
+}
 
 Info "PipHub installed to: $InstallDir"
 Info "Open a new PowerShell and run: piphub"
