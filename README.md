@@ -39,6 +39,17 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ltanedo/piphub/main/in
 .\install.ps1 -InstallDir "C:\tools\piphub"
 ```
 
+#### Proxy-friendly (Zscaler) tips
+```powershell
+# Use your Windows credentials for the corporate proxy
+iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex -Args @{ ProxyUseDefaultCredentials = $true }
+
+# Install without any network (from a cloned workspace)
+# Run from the repo root or wherever piphub.ps1 is available
+.\install.ps1 -FromWorkspace -InstallDir "$env:LOCALAPPDATA\piphub"
+```
+
+
 ## Package Manager Installation
 
 ### Linux (Debian/Ubuntu)
