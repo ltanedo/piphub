@@ -17,6 +17,78 @@ CFG="piphub.yml"
 abort() { echo "Error: $*" >&2; exit 1; }
 info()  { echo "[INFO] $*"; }
 
+
+# If no command/args are supplied, auto-generate a generic piphub.yml if missing
+if [[ $# -eq 0 ]]; then
+  if [[ ! -f "$CFG" ]]; then
+    info "No command provided and $CFG not found. Creating a default $CFG..."
+    cat > "$CFG" <<'EOF'
+# PipHub Configuration - Contains all setup() function arguments for setup.py
+# This file is used to automatically generate setup.py and manage releases
+
+# Required setup() arguments
+name: "your-package-name"
+version: "1.0.0"
+author: "Your Name"
+author_email: "your.email@example.com"
+description: "A short description of your Python package"
+url: "https://github.com/yourusername/your-repo-name"
+
+# Optional setup() arguments
+license: "MIT"
+long_description_content_type: "text/markdown"
+python_requires: ">=3.6"
+
+# Package discovery (uncomment and modify as needed)
+# py_modules: ["single_module"]  # For single-file packages
+# packages will be auto-discovered with find_packages()
+
+# Dependencies (use YAML list format)
+# Examples:
+#   install_requires: ["requests>=2.25.0", "pyyaml>=5.4.0"]
+#   install_requires: []  # for no dependencies
+install_requires: []  # Add your package dependencies here
+
+# Keywords for PyPI (comma-separated string or YAML list)
+keywords: "python, package, automation, tools"
+
+# Classifiers for PyPI (modify as appropriate for your package)
+classifiers: [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"
+]
+
+# Project URLs (update with your repository URLs)
+project_urls: {
+    "Bug Reports": "https://github.com/yourusername/your-repo-name/issues",
+    "Source": "https://github.com/yourusername/your-repo-name",
+    "Documentation": "https://github.com/yourusername/your-repo-name#readme"
+}
+
+# Release-specific settings (not part of setup() function)
+tag_prefix: "v"
+target_branch: "main"
+release_notes_file: "README.md"
+draft: false
+prerelease: false
+EOF
+    info "$CFG created. Edit it with your project details and re-run the script."
+  else
+    info "No command provided. $CFG already exists. Nothing to do."
+  fi
+  exit 0
+fi
+
 [ -f "$CFG" ] || abort "Config $CFG not found."
 
 # Simple YAML reader for flat key: value pairs
