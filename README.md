@@ -14,77 +14,38 @@ PipHub provides command-line tools for automating GitHub releases and Python pac
 
 ### Linux/macOS
 ```bash
-# Install to ~/.local/bin (user PATH)
-curl -fsSL https://raw.githubusercontent.com/ltanedo/piphub/main/piphub.bash -o ~/.local/bin/piphub
-chmod +x ~/.local/bin/piphub
+# Download and install the .deb package
+wget https://github.com/ltanedo/piphub/releases/download/v0.8.0/piphub_0.8.0_all.deb
+sudo dpkg -i piphub_0.8.0_all.deb
 
-# Or install system-wide (may require sudo)
-sudo curl -fsSL https://raw.githubusercontent.com/ltanedo/piphub/main/piphub.bash -o /usr/local/bin/piphub
-sudo chmod +x /usr/local/bin/piphub
+# Or install dependencies if needed
+sudo apt-get install -f
 ```
 
 ### Windows
 ```powershell
-# Download piphub.ps1 to WindowsApps (on PATH)
-iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/piphub.ps1 -OutFile "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
+# Download piphub.ps1 directly from this release
+Invoke-WebRequest -Uri "https://github.com/ltanedo/piphub/releases/download/v0.8.0/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
 
-# Create command shims (piphub and piphub.bat)
+# Move to WindowsApps (already on PATH)
+Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
+
+# Create command shims
 @'
 @echo off
 powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Microsoft\WindowsApps\piphub-ps.ps1" %*
-'@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.cmd" -Encoding ascii -Force
+'@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.cmd" -Encoding ascii
 
 @'
 @echo off
 powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Microsoft\WindowsApps\piphub-ps.ps1" %*
-'@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.bat" -Encoding ascii -Force
+'@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.bat" -Encoding ascii
 
 # Test installation
-piphub -h
+piphub
 ```
 
-## Package Manager Installation
 
-### Linux (Debian/Ubuntu)
-```bash
-# Download latest .deb package
-wget https://github.com/ltanedo/piphub/releases/latest/download/piphub_*_all.deb
-sudo dpkg -i piphub_*_all.deb
-
-# Fix dependencies if needed
-sudo apt-get install -f
-```
-
-### Windows (Manual from Releases)
-```powershell
-# Download and extract ZIP
-$version = "1.0.0"  # Replace with latest version
-Invoke-WebRequest -Uri "https://github.com/ltanedo/piphub/releases/download/v$version/piphub-windows-$version.zip" -OutFile "piphub.zip"
-Expand-Archive -Path "piphub.zip" -DestinationPath "C:\Program Files\piphub"
-
-# Add to PATH
-$env:PATH += ";C:\Program Files\piphub\bin"
-[Environment]::SetEnvironmentVariable("PATH", $env:PATH, "User")
-```
-
-## Advanced Installation Options
-
-### Custom Installation Directory
-
-**Linux/macOS:**
-```bash
-# Install to custom directory
-curl -fsSL https://raw.githubusercontent.com/ltanedo/clify-py/main/install.sh | INSTALL_DIR="$HOME/bin" bash
-```
-
-**Windows:**
-```powershell
-# Install to custom directory
-iwr -useb https://raw.githubusercontent.com/ltanedo/clify-py/main/install.ps1 | iex -Args @{InstallDir="C:\tools\piphub"}
-
-# System-wide installation (requires administrator privileges)
-iwr -useb https://raw.githubusercontent.com/ltanedo/clify-py/main/install.ps1 | iex -Args @{System=$true}
-```
 
 ## Configuration File: `piphub.yml`
 
@@ -179,19 +140,7 @@ prerelease: false
 
 ### 2. Run commands
 
-**Linux/macOS/WSL:**
-```bash
-# Create template config
-piphub init
 
-# Generate setup.py from piphub.yml (no-op if missing)
-piphub generate
-
-# Build, tag, and create GitHub release
-piphub release
-```
-
-**Windows:**
 ```powershell
 # Create template config
 piphub init
