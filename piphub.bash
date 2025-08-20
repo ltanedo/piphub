@@ -251,7 +251,8 @@ EOF
 
     # Parse key: value
     if [[ "$line" =~ ^[[:space:]]*([^:]+):[[:space:]]*(.*)$ ]]; then
-      key="${BASH_REMATCH[1]// /}"
+      key="${BASH_REMATCH[1]}"
+      key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')  # Trim whitespace properly
       value="${BASH_REMATCH[2]}"
 
       # Handle list start
@@ -270,20 +271,21 @@ EOF
         continue
       fi
 
-      # Remove quotes if present
-      value=$(echo "$value" | sed -e 's/^\s*["\x27]\?//' -e 's/["\x27]\?\s*$//')
+      # Remove trailing comments first (before quote removal)
+      value="${value%% #*}"
+      value="${value%%#*}"
 
-      # Remove trailing comments for install_requires
-      if [[ "$key" == "install_requires" ]]; then
-        value="${value%% #*}"
-        value="${value%%#*}"
-        # Remove any remaining whitespace
-        value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+      # Remove any remaining whitespace
+      value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+      # Remove outer quotes if present (but preserve inner quotes for lists)
+      if [[ ! "$value" =~ ^\[.*\]$ ]]; then
+        value=$(echo "$value" | sed -e 's/^\s*["\x27]\?//' -e 's/["\x27]\?\s*$//')
       fi
 
       # Handle special formatting for different types
       case "$key" in
-        "install_requires")
+        "install_requires"|"py_modules")
           # Handle empty list or list with values
           if [[ "$value" == "[]" ]]; then
             echo "    $key=[]," >> setup.py
@@ -316,8 +318,12 @@ EOF
           echo "    $key=\"$value\"," >> setup.py
           ;;
         *)
-          # Default string handling
-          echo "    $key=\"$value\"," >> setup.py
+          # Default string handling - check if it's a list format
+          if [[ "$value" =~ ^\[.*\]$ ]]; then
+            echo "    $key=$value," >> setup.py
+          else
+            echo "    $key=\"$value\"," >> setup.py
+          fi
           ;;
       esac
     fi

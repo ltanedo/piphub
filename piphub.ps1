@@ -298,17 +298,20 @@ setup(
                 continue
             }
 
-            # Remove quotes if present
-            $value = $value -replace '^["\x27]?(.+?)["\x27]?$', '$1'
+            # Remove trailing comments first (before quote removal)
+            $value = $value -replace '\s*#.*$', ''
 
-            # Remove trailing comments for install_requires
-            if ($key -eq "install_requires") {
-                $value = $value -replace '\s*#.*$', ''
+            # Remove any remaining whitespace
+            $value = $value.Trim()
+
+            # Remove outer quotes if present (but preserve inner quotes for lists)
+            if ($value -notmatch '^\[.*\]$') {
+                $value = $value -replace '^["\x27]?(.+?)["\x27]?$', '$1'
             }
 
             # Handle special formatting for different types
             switch ($key) {
-                "install_requires" {
+                { $_ -in @("install_requires", "py_modules") } {
                     # Handle empty list or list with values
                     if ($value -eq "[]") {
                         $setupContent += "    $key=[],`n"
@@ -333,8 +336,13 @@ setup(
                     $setupContent += "    $key=`"$value`",`n"
                 }
                 default {
-                    # Default string handling
-                    $setupContent += "    $key=`"$value`",`n"
+                    # Default handling - check if it's a list format
+                    if ($value -match '^\[.*\]$') {
+                        $setupContent += "    $key=$value,`n"
+                    } else {
+                        # Default string handling
+                        $setupContent += "    $key=`"$value`",`n"
+                    }
                 }
             }
         }

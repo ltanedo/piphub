@@ -15,7 +15,7 @@ long_description_content_type: "text/markdown"
 python_requires: ">=3.6"
 
 # Package discovery (uncomment and modify as needed)
-# py_modules: ["single_module"]  # For single-file packages
+# py_modules: ["super_stepper"]  # For single-file packages
 # packages will be auto-discovered with find_packages()
 
 # Dependencies (use YAML list format)
