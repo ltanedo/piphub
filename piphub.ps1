@@ -7,12 +7,19 @@
 # - A piphub.yaml file at the repo root with setup() function arguments
 #
 # Usage:
-#   .\piphub.ps1 <init|generate|release>
+#   .\piphub.ps1 <init|generate|release> [-Commit]
+#
+# Options:
+#   -Commit: Automatically commit and push changes before release
+#            Runs: git add .; git commit -m "Prepare <version> release"; git push origin <branch>
 #
 param(
     [Parameter(Position=0,Mandatory=$true)]
     [ValidateSet('init','generate','release')]
-    [string]$Command
+    [string]$Command,
+
+    [Parameter()]
+    [switch]$Commit
 )
 
 $ErrorActionPreference = "Stop"
@@ -417,15 +424,50 @@ if ($UNTRACKED) {
     Abort "Untracked files present. Commit, stash, clean, or .gitignore them before releasing."
 }
 
-# Ensure there are no tracked changes (staged or unstaged)
-git diff --quiet
-$diffExitCode = $LASTEXITCODE
-git diff --cached --quiet
-$cachedDiffExitCode = $LASTEXITCODE
+# Handle -Commit flag: automatically commit and push changes
+if ($Commit) {
+    Info "Auto-commit enabled: staging all changes"
 
-if ($diffExitCode -ne 0 -or $cachedDiffExitCode -ne 0) {
-    git status
-    Abort "Working tree has tracked changes. Commit or stash changes before releasing."
+    # Check if there are any changes to commit
+    git diff --quiet
+    $diffExitCode = $LASTEXITCODE
+    git diff --cached --quiet
+    $cachedDiffExitCode = $LASTEXITCODE
+
+    if ($diffExitCode -eq 0 -and $cachedDiffExitCode -eq 0) {
+        Info "No changes to commit"
+    } else {
+        Info "Staging all changes"
+        git add .
+        if ($LASTEXITCODE -ne 0) {
+            Abort "Failed to stage changes"
+        }
+
+        Info "Committing changes with message: 'Prepare $VERSION release'"
+        git commit -m "Prepare $VERSION release"
+        if ($LASTEXITCODE -ne 0) {
+            Abort "Failed to commit changes"
+        }
+
+        Info "Pushing changes to origin/$TARGET_BRANCH"
+        git push origin $TARGET_BRANCH
+        if ($LASTEXITCODE -ne 0) {
+            Abort "Failed to push changes"
+        }
+
+        Ok "Changes committed and pushed successfully"
+    }
+} else {
+    # Original behavior: ensure there are no tracked changes (staged or unstaged)
+    git diff --quiet
+    $diffExitCode = $LASTEXITCODE
+    git diff --cached --quiet
+    $cachedDiffExitCode = $LASTEXITCODE
+
+    if ($diffExitCode -ne 0 -or $cachedDiffExitCode -ne 0) {
+        git status
+        Abort "Working tree has tracked changes. Commit or stash changes before releasing."
+    }
 }
 
 # Create annotated tag if missing, then push branch and tags

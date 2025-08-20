@@ -8,7 +8,11 @@
 # - A piphub.yml file at the repo root with setup() function arguments
 #
 # Usage:
-#   ./piphub.bash <init|generate|release>
+#   ./piphub.bash <init|generate|release> [--commit]
+#
+# Options:
+#   --commit: Automatically commit and push changes before release
+#             Runs: git add .; git commit -m "Prepare <version> release"; git push origin <branch>
 #
 set -euo pipefail
 
@@ -18,9 +22,24 @@ abort() { echo -e "${RED}[${CROSS}] $*${RESET}" >&2; exit 1; }
 info()  { echo -e "${CYAN}[•] $*${RESET}"; }
 ok()    { echo -e "${GREEN}[${CHECK}] $*${RESET}"; }
 
+# Parse command line arguments
 CMD="${1:-}"
+COMMIT_FLAG=false
+
+# Check for --commit flag
+for arg in "$@"; do
+  case $arg in
+    --commit)
+      COMMIT_FLAG=true
+      shift
+      ;;
+  esac
+done
+
 if [[ -z "$CMD" ]]; then
-  echo "Usage: $0 <init|generate|release>"; exit 1
+  echo "Usage: $0 <init|generate|release> [--commit]"
+  echo "  --commit: Automatically commit and push changes before release"
+  exit 1
 fi
 
 if [[ "$CMD" == "init" ]]; then
@@ -375,19 +394,40 @@ git pull --ff-only
 # Only perform release flow when 'release' subcommand
 if [[ "$CMD" != "release" ]]; then exit 0; fi
 
-# Warn and abort if there are any untracked files
-UNTRACKED="$(git ls-files --others --exclude-standard || true)"
-if [[ -n "$UNTRACKED" ]]; then
-  echo -e "${RED}[WARN] Untracked files detected (not committed to git):${RESET}"
-  echo "$UNTRACKED" | sed 's/^/  - /'
-  echo -e "${RED}[WARN] These files will not be part of the release.${RESET}"
-  abort "Untracked files present. Commit, stash, clean, or .gitignore them before releasing."
-fi
+# Handle --commit flag: automatically commit and push changes
+if [[ "$COMMIT_FLAG" == true ]]; then
+  info "Auto-commit enabled: staging all changes"
 
-# Ensure there are no tracked changes (staged or unstaged)
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  git status
-  abort "Working tree has tracked changes. Commit or stash changes before releasing."
+  # Check if there are any changes to commit
+  if git diff --quiet && git diff --cached --quiet; then
+    info "No changes to commit"
+  else
+    info "Staging all changes"
+    git add .
+
+    info "Committing changes with message: 'Prepare $VERSION release'"
+    git commit -m "Prepare $VERSION release"
+
+    info "Pushing changes to origin/$TARGET_BRANCH"
+    git push origin "$TARGET_BRANCH"
+
+    ok "Changes committed and pushed successfully"
+  fi
+else
+  # Original behavior: warn and abort if there are any untracked files
+  UNTRACKED="$(git ls-files --others --exclude-standard || true)"
+  if [[ -n "$UNTRACKED" ]]; then
+    echo -e "${RED}[WARN] Untracked files detected (not committed to git):${RESET}"
+    echo "$UNTRACKED" | sed 's/^/  - /'
+    echo -e "${RED}[WARN] These files will not be part of the release.${RESET}"
+    abort "Untracked files present. Commit, stash, clean, or .gitignore them before releasing."
+  fi
+
+  # Ensure there are no tracked changes (staged or unstaged)
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    git status
+    abort "Working tree has tracked changes. Commit or stash changes before releasing."
+  fi
 fi
 
 # Create annotated tag if missing, then push branch and tags
