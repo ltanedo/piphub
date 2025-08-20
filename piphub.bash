@@ -23,14 +23,6 @@ if [[ -z "$CMD" ]]; then
   echo "Usage: $0 <init|generate|release>"; exit 1
 fi
 
-<<<<<<< HEAD
-
-# If no command/args are supplied, auto-generate a generic piphub.yml if missing
-if [[ $# -eq 0 ]]; then
-  if [[ ! -f "$CFG" ]]; then
-    info "No command provided and $CFG not found. Creating a default $CFG..."
-    cat > "$CFG" <<'EOF'
-=======
 if [[ "$CMD" == "init" ]]; then
   info "Creating template configuration (piphub.yml)"
 
@@ -50,26 +42,16 @@ if [[ "$CMD" == "init" ]]; then
 
   # Create template piphub.yml
   cat > "$CFG" << EOF
->>>>>>> 72e5726 (patch)
 # PipHub Configuration - Contains all setup() function arguments for setup.py
 # This file is used to automatically generate setup.py and manage releases
 
 # Required setup() arguments
-<<<<<<< HEAD
-name: "your-package-name"
-version: "1.0.0"
-author: "Your Name"
-author_email: "your.email@example.com"
-description: "A short description of your Python package"
-url: "https://github.com/yourusername/your-repo-name"
-=======
 name: "$DEFAULT_NAME"
 version: "0.1.0"
 author: "Your Name"
 author_email: "your.email@example.com"
 description: "A short description of your Python package"
 url: "$DEFAULT_URL"
->>>>>>> 72e5726 (patch)
 
 # Optional setup() arguments
 license: "MIT"
@@ -91,11 +73,7 @@ keywords: "python, package, automation, tools"
 
 # Classifiers for PyPI (modify as appropriate for your package)
 classifiers: [
-<<<<<<< HEAD
-    "Development Status :: 4 - Beta",
-=======
     "Development Status :: 3 - Alpha",
->>>>>>> 72e5726 (patch)
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -111,15 +89,9 @@ classifiers: [
 
 # Project URLs (update with your repository URLs)
 project_urls: {
-<<<<<<< HEAD
-    "Bug Reports": "https://github.com/yourusername/your-repo-name/issues",
-    "Source": "https://github.com/yourusername/your-repo-name",
-    "Documentation": "https://github.com/yourusername/your-repo-name#readme"
-=======
     "Bug Reports": "$DEFAULT_URL/issues",
     "Source": "$DEFAULT_URL",
     "Documentation": "$DEFAULT_URL#readme"
->>>>>>> 72e5726 (patch)
 }
 
 # Release-specific settings (not part of setup() function)
@@ -129,25 +101,14 @@ release_notes_file: "README.md"
 draft: false
 prerelease: false
 EOF
-<<<<<<< HEAD
-    info "$CFG created. Edit it with your project details and re-run the script."
-  else
-    info "No command provided. $CFG already exists. Nothing to do."
-  fi
-  exit 0
-fi
-
-[ -f "$CFG" ] || abort "Config $CFG not found."
-=======
 
   ok "Created template $CFG"
-  info "Next steps: edit $CFG and run: piphub-bash generate"
+  info "Next steps: edit $CFG and run: piphub generate"
   exit 0
 fi
 
 # Guard: require config for non-init commands
-if [[ "$CMD" != "init" && ! -f "$CFG" ]]; then abort "Config $CFG not found. Run: piphub-bash init"; fi
->>>>>>> 72e5726 (patch)
+if [[ "$CMD" != "init" && ! -f "$CFG" ]]; then abort "Config $CFG not found. Run: piphub init"; fi
 
 # Simple YAML reader for flat key: value pairs
 get_yaml() {

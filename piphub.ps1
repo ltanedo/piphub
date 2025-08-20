@@ -36,14 +36,6 @@ function Ok {
     Write-Host "[$CHECK] $Message" -ForegroundColor Green
 }
 
-<<<<<<< HEAD
-
-# If no command/args are supplied, auto-generate a generic piphub.yml if missing
-if ($args.Count -eq 0) {
-    if (-not (Test-Path $CFG)) {
-        Info "No command provided and $CFG not found. Creating a default $CFG..."
-        $template = @"
-=======
 # Subcommand: init - create template piphub.yml
 if ($Command -eq 'init') {
     Info "Creating template configuration (piphub.yml)"
@@ -64,26 +56,16 @@ if ($Command -eq 'init') {
 
     # Create template piphub.yml
     $templateContent = @"
->>>>>>> 72e5726 (patch)
 # PipHub Configuration - Contains all setup() function arguments for setup.py
 # This file is used to automatically generate setup.py and manage releases
 
 # Required setup() arguments
-<<<<<<< HEAD
-name: "your-package-name"
-version: "1.0.0"
-author: "Your Name"
-author_email: "your.email@example.com"
-description: "A short description of your Python package"
-url: "https://github.com/yourusername/your-repo-name"
-=======
 name: "$defaultName"
 version: "0.1.0"
 author: "Your Name"
 author_email: "your.email@example.com"
 description: "A short description of your Python package"
 url: "$defaultUrl"
->>>>>>> 72e5726 (patch)
 
 # Optional setup() arguments
 license: "MIT"
@@ -105,11 +87,7 @@ keywords: "python, package, automation, tools"
 
 # Classifiers for PyPI (modify as appropriate for your package)
 classifiers: [
-<<<<<<< HEAD
-    "Development Status :: 4 - Beta",
-=======
     "Development Status :: 3 - Alpha",
->>>>>>> 72e5726 (patch)
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -125,34 +103,9 @@ classifiers: [
 
 # Project URLs (update with your repository URLs)
 project_urls: {
-<<<<<<< HEAD
-    "Bug Reports": "https://github.com/yourusername/your-repo-name/issues",
-    "Source": "https://github.com/yourusername/your-repo-name",
-    "Documentation": "https://github.com/yourusername/your-repo-name#readme"
-}
-
-# Release-specific settings (not part of setup() function)
-tag_prefix: "v"
-target_branch: "main"
-release_notes_file: "README.md"
-draft: false
-prerelease: false
-"@
-        Set-Content -Path $CFG -Value $template -NoNewline:$false
-        Info "$CFG created. Edit it with your project details and re-run the script."
-    } else {
-        Info "No command provided. $CFG already exists. Nothing to do."
-    }
-    exit 0
-}
-
-if (-not (Test-Path $CFG)) {
-    Abort "Config $CFG not found."
-=======
     "Bug Reports": "$defaultUrl/issues",
     "Source": "$defaultUrl",
     "Documentation": "$defaultUrl#readme"
->>>>>>> 72e5726 (patch)
 }
 
 # Release-specific settings (not part of setup() function)
