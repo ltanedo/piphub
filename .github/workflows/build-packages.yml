@@ -193,7 +193,7 @@ jobs:
           fail_on_unmatched_files: false
           files: |
             debian-package/*.deb
-            piphub.ps1
+            windows-package/*.zip
           body: |
             ## Installation Instructions
 
@@ -207,24 +207,24 @@ jobs:
             sudo apt-get install -f
             ```
 
-            ### Windows (Recommended - Proxy-friendly)
+            ### Windows
             ```powershell
             # Download piphub.ps1 directly from this release
             Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
 
             # Move to WindowsApps (already on PATH)
-            Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
+            Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1" -Force
 
             # Create command shims
             @'
             @echo off
             powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Microsoft\WindowsApps\piphub-ps.ps1" %*
-            '@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.cmd" -Encoding ascii
+            '@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.cmd" -Encoding ascii -Force
 
             @'
             @echo off
             powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Microsoft\WindowsApps\piphub-ps.ps1" %*
-            '@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.bat" -Encoding ascii
+            '@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.bat" -Encoding ascii -Force
 
             # Test installation
             piphub

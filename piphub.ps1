@@ -7,41 +7,83 @@
 # - A piphub.yaml file at the repo root with setup() function arguments
 #
 # Usage:
-#   .\piphub.ps1
+#   .\piphub.ps1 <init|generate|release>
 #
-param()
+param(
+    [Parameter(Position=0,Mandatory=$true)]
+    [ValidateSet('init','generate','release')]
+    [string]$Command
+)
 
 $ErrorActionPreference = "Stop"
 
 $CFG = "piphub.yml"
+$CHECK = [char]0x2714
+$CROSS = [char]0x274C
 
 function Abort {
     param([string]$Message)
-    Write-Error "Error: $Message"
+    Write-Host "[$CROSS] $Message" -ForegroundColor Red
     exit 1
 }
 
 function Info {
     param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Green
+    Write-Host "[•] $Message" -ForegroundColor Cyan
+}
+function Ok {
+    param([string]$Message)
+    Write-Host "[$CHECK] $Message" -ForegroundColor Green
 }
 
+<<<<<<< HEAD
 
 # If no command/args are supplied, auto-generate a generic piphub.yml if missing
 if ($args.Count -eq 0) {
     if (-not (Test-Path $CFG)) {
         Info "No command provided and $CFG not found. Creating a default $CFG..."
         $template = @"
+=======
+# Subcommand: init - create template piphub.yml
+if ($Command -eq 'init') {
+    Info "Creating template configuration (piphub.yml)"
+
+    # Get current directory name for default package name
+    $defaultName = (Get-Item .).Name
+
+    # Try to get git remote URL for default repository URL
+    $defaultUrl = ""
+    try {
+        $gitRemote = git remote get-url origin 2>$null
+        if ($gitRemote -and $gitRemote -match "github\.com[:/]([^/]+/[^/]+)") {
+            $defaultUrl = "https://github.com/$($matches[1] -replace '\.git$', '')"
+        }
+    } catch {
+        # Ignore git errors
+    }
+
+    # Create template piphub.yml
+    $templateContent = @"
+>>>>>>> 72e5726 (patch)
 # PipHub Configuration - Contains all setup() function arguments for setup.py
 # This file is used to automatically generate setup.py and manage releases
 
 # Required setup() arguments
+<<<<<<< HEAD
 name: "your-package-name"
 version: "1.0.0"
 author: "Your Name"
 author_email: "your.email@example.com"
 description: "A short description of your Python package"
 url: "https://github.com/yourusername/your-repo-name"
+=======
+name: "$defaultName"
+version: "0.1.0"
+author: "Your Name"
+author_email: "your.email@example.com"
+description: "A short description of your Python package"
+url: "$defaultUrl"
+>>>>>>> 72e5726 (patch)
 
 # Optional setup() arguments
 license: "MIT"
@@ -63,7 +105,11 @@ keywords: "python, package, automation, tools"
 
 # Classifiers for PyPI (modify as appropriate for your package)
 classifiers: [
+<<<<<<< HEAD
     "Development Status :: 4 - Beta",
+=======
+    "Development Status :: 3 - Alpha",
+>>>>>>> 72e5726 (patch)
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -79,6 +125,7 @@ classifiers: [
 
 # Project URLs (update with your repository URLs)
 project_urls: {
+<<<<<<< HEAD
     "Bug Reports": "https://github.com/yourusername/your-repo-name/issues",
     "Source": "https://github.com/yourusername/your-repo-name",
     "Documentation": "https://github.com/yourusername/your-repo-name#readme"
@@ -101,7 +148,29 @@ prerelease: false
 
 if (-not (Test-Path $CFG)) {
     Abort "Config $CFG not found."
+=======
+    "Bug Reports": "$defaultUrl/issues",
+    "Source": "$defaultUrl",
+    "Documentation": "$defaultUrl#readme"
+>>>>>>> 72e5726 (patch)
 }
+
+# Release-specific settings (not part of setup() function)
+tag_prefix: "v"
+target_branch: "main"
+release_notes_file: "README.md"
+draft: false
+prerelease: false
+"@
+
+    Set-Content -Path $CFG -Value $templateContent
+    Ok "Created template $CFG"
+    Info "Next steps: edit $CFG and run: piphub generate"
+    exit 0
+}
+
+# Guard: require config for non-init commands
+if ($Command -ne 'init' -and -not (Test-Path $CFG)) { Abort "Config $CFG not found. Run: piphub init" }
 
 # Simple YAML reader for flat key: value pairs
 function Get-Yaml {
@@ -135,15 +204,11 @@ $URL = Get-Yaml "url"
 $TAG_PREFIX = Get-Yaml "tag_prefix"
 $TARGET_BRANCH = Get-Yaml "target_branch"
 $RELEASE_NOTES_FILE = Get-Yaml "release_notes_file"
-$DRAFT_FLAG = Get-Yaml "draft"
-$PRERELEASE_FLAG = Get-Yaml "prerelease"
 
 # Defaults
 if (-not $TAG_PREFIX) { $TAG_PREFIX = "v" }
 if (-not $TARGET_BRANCH) { $TARGET_BRANCH = "main" }
 if (-not $NAME) { $NAME = (Get-Item .).Name }
-if (-not $DRAFT_FLAG) { $DRAFT_FLAG = "false" }
-if (-not $PRERELEASE_FLAG) { $PRERELEASE_FLAG = "false" }
 
 # Extract repo from URL if not explicitly set
 $REPO = $null
@@ -200,8 +265,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
 '@
 
-    # Read YAML and convert to setup() arguments
+    # Parse YAML and handle complex structures
     $content = Get-Content $CFG
+    $inList = $false
+    $inDict = $false
+    $currentKey = ""
+    $listItems = @()
+    $dictItems = @()
+
     foreach ($line in $content) {
         # Skip comments and empty lines
         if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
@@ -209,30 +280,104 @@ setup(
         # Skip release-specific keys that aren't setup() args
         if ($line -match '^\s*(tag_prefix|target_branch|release_notes_file|draft|prerelease)\s*:') { continue }
 
+        # Handle list continuation (both quoted and unquoted items)
+        if ($line -match '^\s*-\s*"([^"]*)"[\s,]*$' -and $inList) {
+            $listItems += $matches[1]
+            continue
+        }
+        if ($line -match '^\s*"([^"]*)"[\s,]*$' -and $inList) {
+            $listItems += $matches[1]
+            continue
+        }
+
+        # Handle dict continuation
+        if ($line -match '^\s*"([^"]+)":\s*"([^"]+)"[\s,]*$' -and $inDict) {
+            $dictItems += "`"$($matches[1])`": `"$($matches[2])`""
+            continue
+        }
+
+        # End of list
+        if ($line -match '^\s*\]\s*$' -and $inList) {
+            if ($listItems.Count -eq 0) {
+                $setupContent += "    $currentKey=[],`n"
+            } else {
+                $listStr = ($listItems | ForEach-Object { "`"$_`"" }) -join ', '
+                $setupContent += "    $currentKey=[$listStr],`n"
+            }
+            $inList = $false
+            $currentKey = ""
+            $listItems = @()
+            continue
+        }
+
+        # End of dict
+        if ($line -match '^\s*\}\s*$' -and $inDict) {
+            if ($dictItems.Count -eq 0) {
+                $setupContent += "    $currentKey={},`n"
+            } else {
+                $dictStr = $dictItems -join ', '
+                $setupContent += "    $currentKey={$dictStr},`n"
+            }
+            $inDict = $false
+            $currentKey = ""
+            $dictItems = @()
+            continue
+        }
+
         # Parse key: value
         if ($line -match '^\s*([^:]+):\s*(.*)$') {
             $key = $matches[1].Trim()
             $value = $matches[2].Trim()
 
+            # Handle list start
+            if ($value -match '^\[\s*$') {
+                $inList = $true
+                $currentKey = $key
+                $listItems = @()
+                continue
+            }
+
+            # Handle dict start
+            if ($value -match '^\{\s*$') {
+                $inDict = $true
+                $currentKey = $key
+                $dictItems = @()
+                continue
+            }
+
             # Remove quotes if present
             $value = $value -replace '^["\x27]?(.+?)["\x27]?$', '$1'
 
+            # Remove trailing comments for install_requires
+            if ($key -eq "install_requires") {
+                $value = $value -replace '\s*#.*$', ''
+            }
+
             # Handle special formatting for different types
             switch ($key) {
-                { $_ -in @("classifiers", "install_requires", "keywords") } {
-                    # Handle lists - convert YAML list to Python list
-                    if ($value -match '^\[.*\]$') {
+                "install_requires" {
+                    # Handle empty list or list with values
+                    if ($value -eq "[]") {
+                        $setupContent += "    $key=[],`n"
+                    } elseif ($value -match '^\[.*\]$') {
                         $setupContent += "    $key=$value,`n"
                     } else {
-                        # Single line list, convert to Python format
                         $setupContent += "    $key=[`"$value`"],`n"
                     }
                 }
-                { $_ -in @("python_requires", "version", "name", "author", "author_email", "description", "url", "license") } {
-                    $setupContent += "    $key=`"$value`",`n"
+                "keywords" {
+                    # Handle comma-separated string as list
+                    if ($value -match '^\[.*\]$') {
+                        $setupContent += "    $key=$value,`n"
+                    } else {
+                        # Convert comma-separated string to list
+                        $keywords = $value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+                        $keywordList = ($keywords | ForEach-Object { "`"$_`"" }) -join ', '
+                        $setupContent += "    $key=[$keywordList],`n"
+                    }
                 }
-                "long_description_content_type" {
-                    $setupContent += "    long_description_content_type=`"$value`",`n"
+                { $_ -in @("python_requires", "version", "name", "author", "author_email", "description", "url", "license", "long_description_content_type") } {
+                    $setupContent += "    $key=`"$value`",`n"
                 }
                 default {
                     # Default string handling
@@ -250,7 +395,14 @@ setup(
     Set-Content -Path "setup.py" -Value $setupContent
 }
 
-Generate-SetupPy
+if ($Command -eq 'generate') {
+    Info "Generating setup.py from $CFG"
+    Generate-SetupPy
+    Ok "Generated setup.py"
+    exit 0
+}
+
+if ($Command -ne 'release') { exit 0 }
 
 Info "Repo: $REPO"
 Info "Package: $NAME"
@@ -332,6 +484,7 @@ git push origin $TARGET_BRANCH --tags
 if ($LASTEXITCODE -ne 0) {
     Abort "Failed to push to origin"
 }
+Ok "Pushed branch and tags to origin"
 
 # Build Python package (sdist + wheel)
 Info "Installing/Updating build tooling"
@@ -345,20 +498,12 @@ python -m build
 if ($LASTEXITCODE -ne 0) {
     Abort "Failed to build package"
 }
+Ok "Built package artifacts (sdist + wheel)"
 
 # Determine the release notes file (fallback to README.md)
 $BODY_FILE = $RELEASE_NOTES_FILE
 if (-not $BODY_FILE -or -not (Test-Path $BODY_FILE)) {
     $BODY_FILE = "README.md"
-}
-
-# Draft/prerelease flags for gh
-$GH_FLAGS = @()
-if ($DRAFT_FLAG.ToLower() -eq "true") {
-    $GH_FLAGS += "--draft"
-}
-if ($PRERELEASE_FLAG.ToLower() -eq "true") {
-    $GH_FLAGS += "--prerelease"
 }
 
 # Create release if missing, otherwise upload/replace assets
@@ -370,14 +515,14 @@ try {
 } catch {
     Info "Creating release $TAG"
     $distFiles = Get-ChildItem "dist\*" | ForEach-Object { $_.FullName }
-    $createArgs = @("release", "create", $TAG) + $distFiles + @("--repo", $REPO, "--title", "$NAME $VERSION", "--notes-file", $BODY_FILE) + $GH_FLAGS
+    $createArgs = @("release", "create", $TAG) + $distFiles + @("--repo", $REPO, "--title", "$NAME $VERSION", "--notes-file", $BODY_FILE)
     & gh @createArgs
     if ($LASTEXITCODE -ne 0) {
         Abort "Failed to create release"
     }
 }
 
-Info "Release $TAG created/updated successfully."
+Ok "Release $TAG created/updated successfully."
 
 # Update requirements.txt with the pip install command for this release
 Info "Updating requirements.txt with GitHub release install command"

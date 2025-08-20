@@ -14,44 +14,34 @@ PipHub provides command-line tools for automating GitHub releases and Python pac
 
 ### Linux/macOS
 ```bash
-# One-line install
-curl -fsSL https://raw.githubusercontent.com/ltanedo/piphub/main/install.sh | bash
+# Install to ~/.local/bin (user PATH)
+curl -fsSL https://raw.githubusercontent.com/ltanedo/piphub/main/piphub.bash -o ~/.local/bin/piphub
+chmod +x ~/.local/bin/piphub
 
-# Manual install
-wget https://raw.githubusercontent.com/ltanedo/piphub/main/install.sh
-chmod +x install.sh
-./install.sh
+# Or install system-wide (may require sudo)
+sudo curl -fsSL https://raw.githubusercontent.com/ltanedo/piphub/main/piphub.bash -o /usr/local/bin/piphub
+sudo chmod +x /usr/local/bin/piphub
 ```
 
 ### Windows
 ```powershell
-# One-line install
-iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex
+# Download piphub.ps1 to WindowsApps (on PATH)
+iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/piphub.ps1 -OutFile "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
 
-# Manual install
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1" -OutFile "install.ps1"
-.\install.ps1
+# Create command shims (piphub and piphub.bat)
+@'
+@echo off
+powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Microsoft\WindowsApps\piphub-ps.ps1" %*
+'@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.cmd" -Encoding ascii -Force
 
-# System-wide install (requires admin)
-.\install.ps1 -System
+@'
+@echo off
+powershell -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Microsoft\WindowsApps\piphub-ps.ps1" %*
+'@ | Out-File -FilePath "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub.bat" -Encoding ascii -Force
 
-# Custom directory install
-.\install.ps1 -InstallDir "C:\tools\piphub"
+# Test installation
+piphub -h
 ```
-
-#### Proxy-friendly (Zscaler) tips
-```powershell
-# Use winget to install Git, clone repo, install to WindowsApps (most proxy-friendly)
-iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex -Args @{ UseWinget = $true }
-
-# Use your Windows credentials for the corporate proxy
-iwr -useb https://raw.githubusercontent.com/ltanedo/piphub/main/install.ps1 | iex -Args @{ ProxyUseDefaultCredentials = $true }
-
-# Install without any network (from a cloned workspace)
-# Run from the repo root or wherever piphub.ps1 is available
-.\install.ps1 -FromWorkspace -InstallDir "$env:LOCALAPPDATA\piphub"
-```
-
 
 ## Package Manager Installation
 
@@ -96,9 +86,9 @@ iwr -useb https://raw.githubusercontent.com/ltanedo/clify-py/main/install.ps1 | 
 iwr -useb https://raw.githubusercontent.com/ltanedo/clify-py/main/install.ps1 | iex -Args @{System=$true}
 ```
 
-## Configuration File: `piphub.yaml`
+## Configuration File: `piphub.yml`
 
-PipHub uses a single `piphub.yaml` configuration file that contains all your Python package setup information. The scripts automatically generate `setup.py` from this configuration and handle the entire release process.
+PipHub uses a single `piphub.yml` configuration file that contains all your Python package setup information. The scripts automatically generate `setup.py` from this configuration and handle the entire release process.
 
 ### Required Fields
 
@@ -160,7 +150,7 @@ prerelease: false           # Mark as prerelease
 
 ## Usage
 
-### 1. Create your `piphub.yaml`
+### 1. Create your `piphub.yml`
 
 ```yaml
 name: "mypackage"
@@ -187,29 +177,46 @@ draft: false
 prerelease: false
 ```
 
-### 2. Run the release script
+### 2. Run commands
 
 **Linux/macOS/WSL:**
 ```bash
-./piphub.bash
-# or if installed globally:
-piphub-bash
+# Create template config
+piphub init
+
+# Generate setup.py from piphub.yml (no-op if missing)
+piphub generate
+
+# Build, tag, and create GitHub release
+piphub release
 ```
 
 **Windows:**
 ```powershell
-.\piphub.ps1
-# or if installed globally:
-piphub.bat
+# Create template config
+piphub init
+
+# Generate setup.py from piphub.yml (no-op if missing)
+piphub generate
+
+# Build, tag, and create GitHub release
+piphub release
 ```
 
 ### 3. What happens automatically
 
-1. **Generates `setup.py`** from your `piphub.yaml` configuration
+1. **Generates `setup.py`** from your `piphub.yml` configuration
 2. **Validates** git repository state (no uncommitted changes)
 3. **Creates git tag** (e.g., `v1.0.0`)
 4. **Builds** Python package (wheel and source distribution)
 5. **Creates GitHub release** with built packages
+
+### Subcommands
+
+- `piphub init` — Create a template piphub.yml in the current repo
+- `piphub generate` — Generate setup.py from piphub.yml (no-op if piphub.yml is missing)
+- `piphub release` — Verify clean git state, tag and push, build (sdist+wheel), create/update GitHub release, and update requirements.txt
+
 6. **Updates `requirements.txt`** with install command
 
 ## Available Commands
@@ -279,7 +286,7 @@ entry_points: {
 
 ## Migration from `release.yaml`
 
-If you have an existing `release.yaml`, migrate to `piphub.yaml`:
+If you have an existing `release.yaml`, migrate to `piphub.yml`:
 
 1. **Copy package info** from your existing `setup.py`
 2. **Add release settings** from `release.yaml`
@@ -306,7 +313,7 @@ setup(
 )
 ```
 
-**New `piphub.yaml`:**
+**New `piphub.yml`:**
 ```yaml
 name: "mypackage"
 version: "1.0.0"
@@ -329,11 +336,11 @@ target_branch: "main"
    - Ensure `url` field points to your GitHub repository
 
 2. **"name not set"**
-   - Add the `name` field to your `piphub.yaml`
+   - Add the `name` field to your `piphub.yml`
 
 3. **Invalid YAML syntax**
    - Use proper YAML formatting (quotes around strings, proper list syntax)
-   - Test with: `python -c "import yaml; yaml.safe_load(open('piphub.yaml'))"`
+   - Test with: `python -c "import yaml; yaml.safe_load(open('piphub.yml'))"`
 
 4. **Generated setup.py has issues**
    - Run `python test_setup_generation.py` to test

@@ -7,32 +7,69 @@
 # - Python build tooling: python3 -m pip install --upgrade build
 # - A piphub.yml file at the repo root with setup() function arguments
 #
-# Usage from Windows (ensures all work is done in WSL):
-#   wsl bash -lc './piphub.bash'
+# Usage:
+#   ./piphub.bash <init|generate|release>
 #
 set -euo pipefail
 
 CFG="piphub.yml"
+CHECK="✔"; CROSS="❌"; GREEN="\033[32m"; RED="\033[31m"; CYAN="\033[36m"; RESET="\033[0m"
+abort() { echo -e "${RED}[${CROSS}] $*${RESET}" >&2; exit 1; }
+info()  { echo -e "${CYAN}[•] $*${RESET}"; }
+ok()    { echo -e "${GREEN}[${CHECK}] $*${RESET}"; }
 
-abort() { echo "Error: $*" >&2; exit 1; }
-info()  { echo "[INFO] $*"; }
+CMD="${1:-}"
+if [[ -z "$CMD" ]]; then
+  echo "Usage: $0 <init|generate|release>"; exit 1
+fi
 
+<<<<<<< HEAD
 
 # If no command/args are supplied, auto-generate a generic piphub.yml if missing
 if [[ $# -eq 0 ]]; then
   if [[ ! -f "$CFG" ]]; then
     info "No command provided and $CFG not found. Creating a default $CFG..."
     cat > "$CFG" <<'EOF'
+=======
+if [[ "$CMD" == "init" ]]; then
+  info "Creating template configuration (piphub.yml)"
+
+  # Get current directory name for default package name
+  DEFAULT_NAME="$(basename "$(pwd)")"
+
+  # Try to get git remote URL for default repository URL
+  DEFAULT_URL=""
+  if command -v git >/dev/null 2>&1; then
+    GIT_REMOTE="$(git remote get-url origin 2>/dev/null || true)"
+    if [[ -n "$GIT_REMOTE" && "$GIT_REMOTE" =~ github\.com[:/]([^/]+/[^/]+) ]]; then
+      REPO_PATH="${BASH_REMATCH[1]}"
+      REPO_PATH="${REPO_PATH%.git}"
+      DEFAULT_URL="https://github.com/$REPO_PATH"
+    fi
+  fi
+
+  # Create template piphub.yml
+  cat > "$CFG" << EOF
+>>>>>>> 72e5726 (patch)
 # PipHub Configuration - Contains all setup() function arguments for setup.py
 # This file is used to automatically generate setup.py and manage releases
 
 # Required setup() arguments
+<<<<<<< HEAD
 name: "your-package-name"
 version: "1.0.0"
 author: "Your Name"
 author_email: "your.email@example.com"
 description: "A short description of your Python package"
 url: "https://github.com/yourusername/your-repo-name"
+=======
+name: "$DEFAULT_NAME"
+version: "0.1.0"
+author: "Your Name"
+author_email: "your.email@example.com"
+description: "A short description of your Python package"
+url: "$DEFAULT_URL"
+>>>>>>> 72e5726 (patch)
 
 # Optional setup() arguments
 license: "MIT"
@@ -54,7 +91,11 @@ keywords: "python, package, automation, tools"
 
 # Classifiers for PyPI (modify as appropriate for your package)
 classifiers: [
+<<<<<<< HEAD
     "Development Status :: 4 - Beta",
+=======
+    "Development Status :: 3 - Alpha",
+>>>>>>> 72e5726 (patch)
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -70,9 +111,15 @@ classifiers: [
 
 # Project URLs (update with your repository URLs)
 project_urls: {
+<<<<<<< HEAD
     "Bug Reports": "https://github.com/yourusername/your-repo-name/issues",
     "Source": "https://github.com/yourusername/your-repo-name",
     "Documentation": "https://github.com/yourusername/your-repo-name#readme"
+=======
+    "Bug Reports": "$DEFAULT_URL/issues",
+    "Source": "$DEFAULT_URL",
+    "Documentation": "$DEFAULT_URL#readme"
+>>>>>>> 72e5726 (patch)
 }
 
 # Release-specific settings (not part of setup() function)
@@ -82,6 +129,7 @@ release_notes_file: "README.md"
 draft: false
 prerelease: false
 EOF
+<<<<<<< HEAD
     info "$CFG created. Edit it with your project details and re-run the script."
   else
     info "No command provided. $CFG already exists. Nothing to do."
@@ -90,6 +138,16 @@ EOF
 fi
 
 [ -f "$CFG" ] || abort "Config $CFG not found."
+=======
+
+  ok "Created template $CFG"
+  info "Next steps: edit $CFG and run: piphub-bash generate"
+  exit 0
+fi
+
+# Guard: require config for non-init commands
+if [[ "$CMD" != "init" && ! -f "$CFG" ]]; then abort "Config $CFG not found. Run: piphub-bash init"; fi
+>>>>>>> 72e5726 (patch)
 
 # Simple YAML reader for flat key: value pairs
 get_yaml() {
@@ -149,7 +207,9 @@ fi
 TAG="${TAG_PREFIX}${VERSION}"
 
 # Generate setup.py from YAML configuration
-info "Generating setup.py from $CFG"
+if [[ "$CMD" == "generate" ]]; then
+  info "Generating setup.py from $CFG"
+fi
 generate_setup_py() {
   cat > setup.py << 'EOF'
 from setuptools import setup, find_packages
@@ -160,7 +220,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
 EOF
 
-  # Add all YAML keys as setup() arguments
+  # Parse YAML and handle complex structures
+  local in_list=false
+  local in_dict=false
+  local current_key=""
+  local list_items=()
+  local dict_items=()
+
   while IFS= read -r line; do
     # Skip comments and empty lines
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
@@ -169,30 +235,124 @@ EOF
     # Skip release-specific keys that aren't setup() args
     [[ "$line" =~ ^[[:space:]]*(tag_prefix|target_branch|release_notes_file|draft|prerelease)[[:space:]]*: ]] && continue
 
+    # Handle list continuation (both quoted and unquoted items)
+    if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*\"(.*)\"[[:space:]]*,?[[:space:]]*$ ]] && [[ "$in_list" == true ]]; then
+      list_items+=("${BASH_REMATCH[1]}")
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]*\"(.*)\"[[:space:]]*,?[[:space:]]*$ ]] && [[ "$in_list" == true ]]; then
+      list_items+=("${BASH_REMATCH[1]}")
+      continue
+    fi
+
+    # Handle dict continuation
+    if [[ "$line" =~ ^[[:space:]]*\"([^\"]+)\":[[:space:]]*\"([^\"]+)\"[[:space:]]*,?[[:space:]]*$ ]] && [[ "$in_dict" == true ]]; then
+      dict_items+=("\"${BASH_REMATCH[1]}\": \"${BASH_REMATCH[2]}\"")
+      continue
+    fi
+
+    # End of list
+    if [[ "$line" =~ ^[[:space:]]*\][[:space:]]*$ ]] && [[ "$in_list" == true ]]; then
+      # Output the complete list
+      if [[ ${#list_items[@]} -eq 0 ]]; then
+        echo "    $current_key=[]," >> setup.py
+      else
+        local list_str=""
+        for item in "${list_items[@]}"; do
+          if [[ -n "$list_str" ]]; then
+            list_str="$list_str, \"$item\""
+          else
+            list_str="\"$item\""
+          fi
+        done
+        echo "    $current_key=[$list_str]," >> setup.py
+      fi
+      in_list=false
+      current_key=""
+      list_items=()
+      continue
+    fi
+
+    # End of dict
+    if [[ "$line" =~ ^[[:space:]]*\}[[:space:]]*$ ]] && [[ "$in_dict" == true ]]; then
+      # Output the complete dict
+      if [[ ${#dict_items[@]} -eq 0 ]]; then
+        echo "    $current_key={}," >> setup.py
+      else
+        local dict_str=$(IFS=', '; echo "${dict_items[*]}")
+        echo "    $current_key={$dict_str}," >> setup.py
+      fi
+      in_dict=false
+      current_key=""
+      dict_items=()
+      continue
+    fi
+
     # Parse key: value
     if [[ "$line" =~ ^[[:space:]]*([^:]+):[[:space:]]*(.*)$ ]]; then
       key="${BASH_REMATCH[1]// /}"
       value="${BASH_REMATCH[2]}"
 
+      # Handle list start
+      if [[ "$value" =~ ^\[[[:space:]]*$ ]]; then
+        in_list=true
+        current_key="$key"
+        list_items=()
+        continue
+      fi
+
+      # Handle dict start
+      if [[ "$value" =~ ^\{[[:space:]]*$ ]]; then
+        in_dict=true
+        current_key="$key"
+        dict_items=()
+        continue
+      fi
+
       # Remove quotes if present
       value=$(echo "$value" | sed -e 's/^\s*["\x27]\?//' -e 's/["\x27]\?\s*$//')
 
+      # Remove trailing comments for install_requires
+      if [[ "$key" == "install_requires" ]]; then
+        value="${value%% #*}"
+        value="${value%%#*}"
+        # Remove any remaining whitespace
+        value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+      fi
+
       # Handle special formatting for different types
       case "$key" in
-        "classifiers"|"install_requires"|"keywords")
-          # Handle lists - convert YAML list to Python list
-          if [[ "$value" =~ ^\[.*\]$ ]]; then
+        "install_requires")
+          # Handle empty list or list with values
+          if [[ "$value" == "[]" ]]; then
+            echo "    $key=[]," >> setup.py
+          elif [[ "$value" =~ ^\[.*\]$ ]]; then
             echo "    $key=$value," >> setup.py
           else
-            # Single line list, convert to Python format
             echo "    $key=[\"$value\"]," >> setup.py
           fi
           ;;
-        "python_requires"|"version"|"name"|"author"|"author_email"|"description"|"url"|"license")
-          echo "    $key=\"$value\"," >> setup.py
+        "keywords")
+          # Handle comma-separated string as list
+          if [[ "$value" =~ ^\[.*\]$ ]]; then
+            echo "    $key=$value," >> setup.py
+          else
+            # Convert comma-separated string to list
+            IFS=',' read -ra KEYWORDS <<< "$value"
+            local keyword_list=""
+            for keyword in "${KEYWORDS[@]}"; do
+              keyword=$(echo "$keyword" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              if [[ -n "$keyword_list" ]]; then
+                keyword_list="$keyword_list, \"$keyword\""
+              else
+                keyword_list="\"$keyword\""
+              fi
+            done
+            echo "    $key=[$keyword_list]," >> setup.py
+          fi
           ;;
-        "long_description_content_type")
-          echo "    long_description_content_type=\"$value\"," >> setup.py
+        "python_requires"|"version"|"name"|"author"|"author_email"|"description"|"url"|"license"|"long_description_content_type")
+          echo "    $key=\"$value\"," >> setup.py
           ;;
         *)
           # Default string handling
@@ -208,7 +368,11 @@ EOF
   echo ")" >> setup.py
 }
 
-generate_setup_py
+if [[ "$CMD" == "generate" ]]; then
+  generate_setup_py
+  ok "Generated setup.py"
+  exit 0
+fi
 
 info "Repo: $REPO"
 info "Package: $NAME"
@@ -241,12 +405,15 @@ info "Checking out $TARGET_BRANCH and pulling latest"
 git checkout "$TARGET_BRANCH"
 git pull --ff-only
 
+# Only perform release flow when 'release' subcommand
+if [[ "$CMD" != "release" ]]; then exit 0; fi
+
 # Warn and abort if there are any untracked files
 UNTRACKED="$(git ls-files --others --exclude-standard || true)"
 if [[ -n "$UNTRACKED" ]]; then
-  echo "[WARN] Untracked files detected (not committed to git):"
+  echo -e "${RED}[WARN] Untracked files detected (not committed to git):${RESET}"
   echo "$UNTRACKED" | sed 's/^/  - /'
-  echo "[WARN] These files will not be part of the release."
+  echo -e "${RED}[WARN] These files will not be part of the release.${RESET}"
   abort "Untracked files present. Commit, stash, clean, or .gitignore them before releasing."
 fi
 
