@@ -28,7 +28,7 @@ sudo apt-get install -f
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ltanedo/piphub/refs/heads/master/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
 
 # Move to WindowsApps (already on PATH)
-Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
+Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1" -Force
 
 # Create command shims
 @'
