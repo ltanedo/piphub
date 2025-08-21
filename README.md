@@ -25,7 +25,7 @@ sudo apt-get install -f
 ### Windows
 ```powershell
 # Download piphub.ps1 directly from this release
-Invoke-WebRequest -Uri "https://github.com/ltanedo/piphub/releases/download/v1.0.0/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ltanedo/piphub/refs/heads/master/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
 
 # Move to WindowsApps (already on PATH)
 Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
