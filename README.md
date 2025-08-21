@@ -15,8 +15,8 @@ PipHub provides command-line tools for automating GitHub releases and Python pac
 ### Linux/macOS
 ```bash
 # Download and install the .deb package
-wget https://github.com/ltanedo/piphub/releases/download/v0.8.0/piphub_0.8.0_all.deb
-sudo dpkg -i piphub_0.8.0_all.deb
+wget https://github.com/ltanedo/piphub/releases/download/v0.8.0/piphub_1.0.0_all.deb
+sudo dpkg -i piphub_1.0.0_all.deb
 
 # Or install dependencies if needed
 sudo apt-get install -f
@@ -25,7 +25,7 @@ sudo apt-get install -f
 ### Windows
 ```powershell
 # Download piphub.ps1 directly from this release
-Invoke-WebRequest -Uri "https://github.com/ltanedo/piphub/releases/download/v0.8.0/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
+Invoke-WebRequest -Uri "https://github.com/ltanedo/piphub/releases/download/v1.0.0/piphub.ps1" -OutFile "$env:TEMP\piphub.ps1"
 
 # Move to WindowsApps (already on PATH)
 Move-Item "$env:TEMP\piphub.ps1" "$env:LOCALAPPDATA\Microsoft\WindowsApps\piphub-ps.ps1"
