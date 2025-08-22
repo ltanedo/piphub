@@ -7,24 +7,60 @@
 # - A piphub.yaml file at the repo root with setup() function arguments
 #
 # Usage:
-#   .\piphub.ps1 <init|generate|release> [-Commit]
-#
-# Options:
-#   -Commit: Automatically commit and push changes before release
-#            Runs: git add .; git commit -m "Prepare <version> release"; git push origin <branch>
+#   .\piphub.ps1 <init|generate|release|help>
+#   .\piphub.ps1 -help              # Shows help
+#   .\piphub.ps1                    # Shows help
 #
 param(
-    [Parameter(Position=0,Mandatory=$true)]
-    [ValidateSet('init','generate','release')]
+    [Parameter(Position=0,Mandatory=$false)]
+    [ValidateSet('init','generate','release','help')]
     [string]$Command,
 
     [Parameter()]
-    [switch]$Commit
+    [switch]$help
 )
 
 $ErrorActionPreference = "Stop"
 
 $CFG = "piphub.yml"
+
+# Show help if no command or help requested
+if (-not $Command -or $Command -eq 'help' -or $help) {
+    Write-Host @"
+PipHub - Python Package Release Automation Tool
+
+USAGE:
+    piphub.ps1 <COMMAND>
+
+COMMANDS:
+    init        Create a template piphub.yml configuration file
+    generate    Generate setup.py from piphub.yml (without releasing)
+    release     Build and create GitHub release with auto-commit
+    help        Show this help message
+
+EXAMPLES:
+    piphub.ps1 init                 # Create template piphub.yml
+    piphub.ps1 generate             # Generate setup.py only
+    piphub.ps1 release              # Full release workflow
+
+RELEASE WORKFLOW:
+    1. Auto-commit and push any pending changes
+    2. Generate setup.py from piphub.yml
+    3. Create git tag (e.g., v1.0.0)
+    4. Build Python package (wheel + source)
+    5. Create GitHub release with assets
+    6. Update and auto-commit requirements.txt
+
+REQUIREMENTS:
+    - git (configured with GitHub access)
+    - gh (GitHub CLI, authenticated)
+    - python (with build module)
+    - piphub.yml configuration file (created with 'init')
+
+For more information, see: https://github.com/ltanedo/piphub
+"@ -ForegroundColor Cyan
+    exit 0
+}
 $CHECK = [char]0x2714
 $CROSS = [char]0x274C
 
@@ -435,50 +471,37 @@ if ($UNTRACKED) {
     Abort "Untracked files present. Commit, stash, clean, or .gitignore them before releasing."
 }
 
-# Handle -Commit flag: automatically commit and push changes
-if ($Commit) {
-    Info "Auto-commit enabled: staging all changes"
+# Automatically commit and push changes before release
+Info "Auto-commit enabled: staging all changes"
 
-    # Check if there are any changes to commit
-    git diff --quiet
-    $diffExitCode = $LASTEXITCODE
-    git diff --cached --quiet
-    $cachedDiffExitCode = $LASTEXITCODE
+# Check if there are any changes to commit
+git diff --quiet
+$diffExitCode = $LASTEXITCODE
+git diff --cached --quiet
+$cachedDiffExitCode = $LASTEXITCODE
 
-    if ($diffExitCode -eq 0 -and $cachedDiffExitCode -eq 0) {
-        Info "No changes to commit"
-    } else {
-        Info "Staging all changes"
-        git add .
-        if ($LASTEXITCODE -ne 0) {
-            Abort "Failed to stage changes"
-        }
-
-        Info "Committing changes with message: 'Prepare $VERSION release'"
-        git commit -m "Prepare $VERSION release"
-        if ($LASTEXITCODE -ne 0) {
-            Abort "Failed to commit changes"
-        }
-
-        Info "Pushing changes to origin/$TARGET_BRANCH"
-        git push origin $TARGET_BRANCH
-        if ($LASTEXITCODE -ne 0) {
-            Abort "Failed to push changes"
-        }
-
-        Ok "Changes committed and pushed successfully"
-    }
+if ($diffExitCode -eq 0 -and $cachedDiffExitCode -eq 0) {
+    Info "No changes to commit"
 } else {
-    # Original behavior: ensure there are no tracked changes (staged or unstaged)
-    git diff --quiet
-    $diffExitCode = $LASTEXITCODE
-    git diff --cached --quiet
-    $cachedDiffExitCode = $LASTEXITCODE
-
-    if ($diffExitCode -ne 0 -or $cachedDiffExitCode -ne 0) {
-        git status
-        Abort "Working tree has tracked changes. Commit or stash changes before releasing."
+    Info "Staging all changes"
+    git add .
+    if ($LASTEXITCODE -ne 0) {
+        Abort "Failed to stage changes"
     }
+
+    Info "Committing changes with message: 'Prepare $VERSION release'"
+    git commit -m "Prepare $VERSION release"
+    if ($LASTEXITCODE -ne 0) {
+        Abort "Failed to commit changes"
+    }
+
+    Info "Pushing changes to origin/$TARGET_BRANCH"
+    git push origin $TARGET_BRANCH
+    if ($LASTEXITCODE -ne 0) {
+        Abort "Failed to push changes"
+    }
+
+    Ok "Changes committed and pushed successfully"
 }
 
 # Create annotated tag if missing, then push branch and tags

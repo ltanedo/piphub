@@ -8,11 +8,8 @@
 # - A piphub.yml file at the repo root with setup() function arguments
 #
 # Usage:
-#   ./piphub.bash <init|generate|release> [--commit]
-#
-# Options:
-#   --commit: Automatically commit and push changes before release
-#             Runs: git add .; git commit -m "Prepare <version> release"; git push origin <branch>
+#   ./piphub.bash <init|generate|release|help>
+#   ./piphub.bash                   # Shows help
 #
 set -euo pipefail
 
@@ -24,22 +21,43 @@ ok()    { echo -e "${GREEN}[${CHECK}] $*${RESET}"; }
 
 # Parse command line arguments
 CMD="${1:-}"
-COMMIT_FLAG=false
 
-# Check for --commit flag
-for arg in "$@"; do
-  case $arg in
-    --commit)
-      COMMIT_FLAG=true
-      shift
-      ;;
-  esac
-done
+# Show help if no command or help requested
+if [[ -z "$CMD" || "$CMD" == "help" || "$CMD" == "--help" ]]; then
+  cat << 'EOF'
+PipHub - Python Package Release Automation Tool
 
-if [[ -z "$CMD" ]]; then
-  echo "Usage: $0 <init|generate|release> [--commit]"
-  echo "  --commit: Automatically commit and push changes before release"
-  exit 1
+USAGE:
+    ./piphub.bash <COMMAND>
+
+COMMANDS:
+    init        Create a template piphub.yml configuration file
+    generate    Generate setup.py from piphub.yml (without releasing)
+    release     Build and create GitHub release with auto-commit
+    help        Show this help message
+
+EXAMPLES:
+    ./piphub.bash init              # Create template piphub.yml
+    ./piphub.bash generate          # Generate setup.py only
+    ./piphub.bash release           # Full release workflow
+
+RELEASE WORKFLOW:
+    1. Auto-commit and push any pending changes
+    2. Generate setup.py from piphub.yml
+    3. Create git tag (e.g., v1.0.0)
+    4. Build Python package (wheel + source)
+    5. Create GitHub release with assets
+    6. Update and auto-commit requirements.txt
+
+REQUIREMENTS:
+    - git (configured with GitHub access)
+    - gh (GitHub CLI, authenticated)
+    - python3 (with build module)
+    - piphub.yml configuration file (created with 'init')
+
+For more information, see: https://github.com/ltanedo/piphub
+EOF
+  exit 0
 fi
 
 if [[ "$CMD" == "init" ]]; then
@@ -397,40 +415,23 @@ git pull --ff-only
 # Only perform release flow when 'release' subcommand
 if [[ "$CMD" != "release" ]]; then exit 0; fi
 
-# Handle --commit flag: automatically commit and push changes
-if [[ "$COMMIT_FLAG" == true ]]; then
-  info "Auto-commit enabled: staging all changes"
+# Automatically commit and push changes before release
+info "Auto-commit enabled: staging all changes"
 
-  # Check if there are any changes to commit
-  if git diff --quiet && git diff --cached --quiet; then
-    info "No changes to commit"
-  else
-    info "Staging all changes"
-    git add .
-
-    info "Committing changes with message: 'Prepare $VERSION release'"
-    git commit -m "Prepare $VERSION release"
-
-    info "Pushing changes to origin/$TARGET_BRANCH"
-    git push origin "$TARGET_BRANCH"
-
-    ok "Changes committed and pushed successfully"
-  fi
+# Check if there are any changes to commit
+if git diff --quiet && git diff --cached --quiet; then
+  info "No changes to commit"
 else
-  # Original behavior: warn and abort if there are any untracked files
-  UNTRACKED="$(git ls-files --others --exclude-standard || true)"
-  if [[ -n "$UNTRACKED" ]]; then
-    echo -e "${RED}[WARN] Untracked files detected (not committed to git):${RESET}"
-    echo "$UNTRACKED" | sed 's/^/  - /'
-    echo -e "${RED}[WARN] These files will not be part of the release.${RESET}"
-    abort "Untracked files present. Commit, stash, clean, or .gitignore them before releasing."
-  fi
+  info "Staging all changes"
+  git add .
 
-  # Ensure there are no tracked changes (staged or unstaged)
-  if ! git diff --quiet || ! git diff --cached --quiet; then
-    git status
-    abort "Working tree has tracked changes. Commit or stash changes before releasing."
-  fi
+  info "Committing changes with message: 'Prepare $VERSION release'"
+  git commit -m "Prepare $VERSION release"
+
+  info "Pushing changes to origin/$TARGET_BRANCH"
+  git push origin "$TARGET_BRANCH"
+
+  ok "Changes committed and pushed successfully"
 fi
 
 # Create annotated tag if missing, then push branch and tags
