@@ -3,8 +3,8 @@
 
 # Required setup() arguments
 name: "piphub"
-version: "1.0.0"
-author: "Your Name"
+version: "1.0.1"
+author: "Luis Tanedo"
 author_email: "your.email@example.com"
 description: "PipHub - Python package release automation tool"
 url: "https://github.com/ltanedo/piphub"
@@ -15,7 +15,7 @@ long_description_content_type: "text/markdown"
 python_requires: ">=3.6"
 
 # Package discovery (uncomment and modify as needed)
-# py_modules: ["super_stepper"]  # For single-file packages
+# py_modules: ["single_module"]  # For single-file packages
 # packages will be auto-discovered with find_packages()
 
 # Dependencies (use YAML list format)
@@ -56,4 +56,4 @@ target_branch: "master"
 release_notes_file: "README.md"
 draft: false
 prerelease: false
-auto_commit_requirements: true  # Auto git add, commit, and push requirements.txt after release
+auto_commit_requirements: true

@@ -82,6 +82,125 @@ function Warn {
     param([string]$Message)
     Write-Host "[!] $Message" -ForegroundColor Yellow
 }
+function Show-Error {
+    param([string]$Message)
+    Write-Host "[$CROSS] $Message" -ForegroundColor Red
+}
+
+function Validate-PiphubYml {
+    param([string]$ConfigPath)
+
+    $errors = @()
+
+    # Check if file exists
+    if (-not (Test-Path $ConfigPath)) {
+        $errors += "Configuration file '$ConfigPath' not found"
+        return $errors
+    }
+
+    # Required fields with their expected types
+    $requiredFields = @{
+        'name' = 'string'
+        'version' = 'string'
+        'author' = 'string'
+        'description' = 'string'
+        'url' = 'string'
+    }
+
+    # Optional fields with expected types
+    $optionalFields = @{
+        'author_email' = 'string'
+        'license' = 'string'
+        'python_requires' = 'string'
+        'install_requires' = 'array'
+        'extras_require' = 'object'
+        'entry_points' = 'object'
+        'classifiers' = 'array'
+        'keywords' = 'array'
+        'project_urls' = 'object'
+        'packages' = 'array'
+        'py_modules' = 'array'
+        'package_data' = 'object'
+        'include_package_data' = 'boolean'
+        'zip_safe' = 'boolean'
+    }
+
+    try {
+        # Check required fields using existing Get-Yaml function
+        foreach ($field in $requiredFields.Keys) {
+            $value = Get-Yaml $field
+            if (-not $value -or $value -eq '') {
+                $errors += "Required field '$field' is missing or empty"
+            }
+        }
+
+        # Validate specific field formats
+        $version = Get-Yaml "version"
+        if ($version -and $version -notmatch '^\d+\.\d+\.\d+') {
+            $errors += "Field 'version' should follow semantic versioning (e.g., '1.0.0'), got '$version'"
+        }
+
+        $url = Get-Yaml "url"
+        if ($url -and $url -notmatch '^https?://') {
+            $errors += "Field 'url' should be a valid HTTP/HTTPS URL, got '$url'"
+        }
+
+    } catch {
+        $errors += "Failed to parse YAML: $($_.Exception.Message)"
+    }
+
+    return $errors
+}
+
+function Validate-SetupPy {
+    param([string]$SetupPath)
+
+    $errors = @()
+
+    # Check if file exists
+    if (-not (Test-Path $SetupPath)) {
+        $errors += "setup.py file not found at '$SetupPath'"
+        return $errors
+    }
+
+    # Validate Python syntax
+    try {
+        $result = python -m py_compile $SetupPath 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $errors += "Python syntax error in setup.py: $result"
+        }
+    } catch {
+        $errors += "Failed to validate Python syntax: $($_.Exception.Message)"
+    }
+
+    # Try to import and validate setup.py structure
+    try {
+        $tempScript = @"
+import sys
+import os
+sys.path.insert(0, os.path.dirname('$SetupPath'))
+try:
+    import setup
+    print("setup.py imported successfully")
+except Exception as e:
+    print(f"Import error: {e}")
+    sys.exit(1)
+"@
+        $tempFile = [System.IO.Path]::GetTempFileName() + ".py"
+        Set-Content -Path $tempFile -Value $tempScript
+
+        $result = python $tempFile 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $errors += "setup.py validation failed: $result"
+        }
+
+        Remove-Item $tempFile -ErrorAction SilentlyContinue
+    } catch {
+        $errors += "Failed to validate setup.py structure: $($_.Exception.Message)"
+    }
+
+    return $errors
+}
 
 # Subcommand: init - create template piphub.yml
 if ($Command -eq 'init') {
@@ -411,6 +530,19 @@ setup(
 }
 
 if ($Command -eq 'generate') {
+    Info "Validating $CFG configuration"
+
+    # Validate piphub.yml
+    $validationErrors = Validate-PiphubYml -ConfigPath $CFG
+    if ($validationErrors.Count -gt 0) {
+        Show-Error "Validation failed for $CFG"
+        foreach ($err in $validationErrors) {
+            Show-Error $err
+        }
+        exit 1
+    }
+
+    Ok "Configuration validation passed"
     Info "Generating setup.py from $CFG"
     Generate-SetupPy
     Ok "Generated setup.py"
@@ -418,6 +550,20 @@ if ($Command -eq 'generate') {
 }
 
 if ($Command -ne 'release') { exit 0 }
+
+Info "Validating $CFG configuration"
+
+# Validate piphub.yml
+$validationErrors = Validate-PiphubYml -ConfigPath $CFG
+if ($validationErrors.Count -gt 0) {
+    Show-Error "Validation failed for $CFG"
+    foreach ($err in $validationErrors) {
+        Show-Error $err
+    }
+    exit 1
+}
+
+Ok "Configuration validation passed"
 
 Info "Repo: $REPO"
 Info "Package: $NAME"
@@ -522,6 +668,22 @@ if ($LASTEXITCODE -ne 0) {
     Abort "Failed to push to origin"
 }
 Ok "Pushed branch and tags to origin"
+
+# Generate and validate setup.py
+Info "Generating setup.py from $CFG"
+Generate-SetupPy
+Ok "Generated setup.py"
+
+Info "Validating setup.py"
+$setupErrors = Validate-SetupPy -SetupPath "setup.py"
+if ($setupErrors.Count -gt 0) {
+    Show-Error "Validation failed for setup.py"
+    foreach ($err in $setupErrors) {
+        Show-Error $err
+    }
+    exit 1
+}
+Ok "setup.py validation passed"
 
 # Build Python package (sdist + wheel)
 Info "Installing/Updating build tooling"

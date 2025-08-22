@@ -18,6 +18,103 @@ CHECK="✔"; CROSS="❌"; GREEN="\033[32m"; RED="\033[31m"; CYAN="\033[36m"; RES
 abort() { echo -e "${RED}[${CROSS}] $*${RESET}" >&2; exit 1; }
 info()  { echo -e "${CYAN}[•] $*${RESET}"; }
 ok()    { echo -e "${GREEN}[${CHECK}] $*${RESET}"; }
+error() { echo -e "${RED}[${CROSS}] $*${RESET}"; }
+
+validate_piphub_yml() {
+  local config_path="$1"
+  local errors=()
+
+  # Check if file exists
+  if [[ ! -f "$config_path" ]]; then
+    errors+=("Configuration file '$config_path' not found")
+    printf '%s\n' "${errors[@]}"
+    return 1
+  fi
+
+  # Required fields
+  local required_fields=("name" "version" "author" "description" "url")
+
+  # Check required fields
+  for field in "${required_fields[@]}"; do
+    local value
+    value=$(get_yaml "$field" 2>/dev/null || true)
+    if [[ -z "$value" ]]; then
+      errors+=("Required field '$field' is missing or empty")
+    fi
+  done
+
+  # Validate version format
+  local version
+  version=$(get_yaml "version" 2>/dev/null || true)
+  if [[ -n "$version" && ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    errors+=("Field 'version' should follow semantic versioning (e.g., '1.0.0'), got '$version'")
+  fi
+
+  # Validate URL format
+  local url
+  url=$(get_yaml "url" 2>/dev/null || true)
+  if [[ -n "$url" && ! "$url" =~ ^https?:// ]]; then
+    errors+=("Field 'url' should be a valid HTTP/HTTPS URL, got '$url'")
+  fi
+
+  # Print errors if any
+  if [[ ${#errors[@]} -gt 0 ]]; then
+    printf '%s\n' "${errors[@]}"
+    return 1
+  fi
+
+  return 0
+}
+
+validate_setup_py() {
+  local setup_path="$1"
+  local errors=()
+
+  # Check if file exists
+  if [[ ! -f "$setup_path" ]]; then
+    errors+=("setup.py file not found at '$setup_path'")
+    printf '%s\n' "${errors[@]}"
+    return 1
+  fi
+
+  # Validate Python syntax
+  if ! python3 -m py_compile "$setup_path" 2>/dev/null; then
+    local compile_error
+    compile_error=$(python3 -m py_compile "$setup_path" 2>&1 || true)
+    errors+=("Python syntax error in setup.py: $compile_error")
+  fi
+
+  # Try to validate setup.py structure
+  local temp_script
+  temp_script=$(mktemp --suffix=.py)
+  cat > "$temp_script" << EOF
+import sys
+import os
+sys.path.insert(0, os.path.dirname('$setup_path'))
+try:
+    import setup
+    print("setup.py imported successfully")
+except Exception as e:
+    print(f"Import error: {e}")
+    sys.exit(1)
+EOF
+
+  if ! python3 "$temp_script" >/dev/null 2>&1; then
+    local import_error
+    import_error=$(python3 "$temp_script" 2>&1 || true)
+    errors+=("setup.py validation failed: $import_error")
+  fi
+
+  rm -f "$temp_script"
+
+  # Print errors if any
+  if [[ ${#errors[@]} -gt 0 ]]; then
+    printf '%s\n' "${errors[@]}"
+    return 1
+  fi
+
+  return 0
+}
 
 # Parse command line arguments
 CMD="${1:-}"
@@ -152,9 +249,11 @@ if [[ "$CMD" != "init" && ! -f "$CFG" ]]; then abort "Config $CFG not found. Run
 get_yaml() {
   local key="$1"
   awk -v k="$key" '
-    BEGIN { FS=":" }
-    $0 !~ /^[ \t]*#/ && $1 ~ "^[ \t]*" k "[ \t]*$" {
-      $1=""; sub(/^:[ \t]*/, ""); gsub(/^[ \t]+|[ \t]+$/, ""); print; exit
+    $0 !~ /^[ \t]*#/ && $0 ~ "^[ \t]*" k "[ \t]*:" {
+      sub("^[ \t]*" k "[ \t]*:[ \t]*", "")
+      gsub(/^[ \t]+|[ \t]+$/, "")
+      print
+      exit
     }
   ' "$CFG" | sed -e 's/^\s*["\x27]\?//' -e 's/["\x27]\?\s*$//'
 }
@@ -376,10 +475,36 @@ EOF
 }
 
 if [[ "$CMD" == "generate" ]]; then
+  info "Validating $CFG configuration"
+
+  # Validate piphub.yml
+  if ! validation_errors=$(validate_piphub_yml "$CFG"); then
+    error "Validation failed for $CFG"
+    while IFS= read -r err; do
+      error "$err"
+    done <<< "$validation_errors"
+    exit 1
+  fi
+
+  ok "Configuration validation passed"
+  info "Generating setup.py from $CFG"
   generate_setup_py
   ok "Generated setup.py"
   exit 0
 fi
+
+info "Validating $CFG configuration"
+
+# Validate piphub.yml
+if ! validation_errors=$(validate_piphub_yml "$CFG"); then
+  error "Validation failed for $CFG"
+  while IFS= read -r err; do
+    error "$err"
+  done <<< "$validation_errors"
+  exit 1
+fi
+
+ok "Configuration validation passed"
 
 info "Repo: $REPO"
 info "Package: $NAME"
@@ -454,6 +579,21 @@ if ! python3 -m pip --version >/dev/null 2>&1; then
 fi
 
 python3 -m pip install --upgrade build >/dev/null --break-system-packages
+
+# Generate and validate setup.py
+info "Generating setup.py from $CFG"
+generate_setup_py
+ok "Generated setup.py"
+
+info "Validating setup.py"
+if ! setup_errors=$(validate_setup_py "setup.py"); then
+  error "Validation failed for setup.py"
+  while IFS= read -r err; do
+    error "$err"
+  done <<< "$setup_errors"
+  exit 1
+fi
+ok "setup.py validation passed"
 
 info "Building package artifacts"
 rm -rf dist
