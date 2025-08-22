@@ -115,10 +115,11 @@ project_urls: {
 
 # Release-specific settings (not part of setup() function)
 tag_prefix: "v"
-target_branch: "main"
+target_branch: "master"
 release_notes_file: "README.md"
 draft: false
 prerelease: false
+auto_commit_requirements: true
 EOF
 
   ok "Created template $CFG"
@@ -154,13 +155,15 @@ TARGET_BRANCH="$(get_yaml target_branch || true)"
 RELEASE_NOTES_FILE="$(get_yaml release_notes_file || true)"
 DRAFT_FLAG="$(get_yaml draft || true)"
 PRERELEASE_FLAG="$(get_yaml prerelease || true)"
+AUTO_COMMIT_REQUIREMENTS="$(get_yaml auto_commit_requirements || true)"
 
 # Defaults
 TAG_PREFIX=${TAG_PREFIX:-v}
-TARGET_BRANCH=${TARGET_BRANCH:-main}
+TARGET_BRANCH=${TARGET_BRANCH:-master}
 NAME=${NAME:-$(basename "$(pwd)")}
 DRAFT_FLAG=${DRAFT_FLAG:-false}
 PRERELEASE_FLAG=${PRERELEASE_FLAG:-false}
+AUTO_COMMIT_REQUIREMENTS=${AUTO_COMMIT_REQUIREMENTS:-true}
 
 # Extract repo from URL if not explicitly set
 if [[ -n "$URL" ]]; then
@@ -494,5 +497,25 @@ git+${GITHUB_URL}
 EOF
 
 info "requirements.txt updated with: git+${GITHUB_URL}"
+
+# Auto-commit requirements.txt if enabled
+if [[ "${AUTO_COMMIT_REQUIREMENTS,,}" == "true" ]]; then
+  info "Auto-committing requirements.txt changes..."
+  if git add requirements.txt; then
+    if git commit -m "Update requirements.txt for release $TAG"; then
+      if git push origin "$TARGET_BRANCH"; then
+        info "Successfully committed and pushed requirements.txt"
+      else
+        echo "[WARN] Failed to push requirements.txt commit" >&2
+      fi
+    else
+      echo "[WARN] Failed to commit requirements.txt (may be no changes)" >&2
+    fi
+  else
+    echo "[WARN] Failed to git add requirements.txt" >&2
+  fi
+else
+  info "Auto-commit disabled. Remember to commit requirements.txt manually if needed."
+fi
 
 

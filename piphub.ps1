@@ -117,10 +117,11 @@ project_urls: {
 
 # Release-specific settings (not part of setup() function)
 tag_prefix: "v"
-target_branch: "main"
+target_branch: "master"
 release_notes_file: "README.md"
 draft: false
 prerelease: false
+auto_commit_requirements: true
 "@
 
     Set-Content -Path $CFG -Value $templateContent
@@ -164,11 +165,23 @@ $URL = Get-Yaml "url"
 $TAG_PREFIX = Get-Yaml "tag_prefix"
 $TARGET_BRANCH = Get-Yaml "target_branch"
 $RELEASE_NOTES_FILE = Get-Yaml "release_notes_file"
+<<<<<<< HEAD
+=======
+$DRAFT_FLAG = Get-Yaml "draft"
+$PRERELEASE_FLAG = Get-Yaml "prerelease"
+$AUTO_COMMIT_REQUIREMENTS = Get-Yaml "auto_commit_requirements"
+>>>>>>> ade42b7 (patch 1.0.1)
 
 # Defaults
 if (-not $TAG_PREFIX) { $TAG_PREFIX = "v" }
-if (-not $TARGET_BRANCH) { $TARGET_BRANCH = "main" }
+if (-not $TARGET_BRANCH) { $TARGET_BRANCH = "master" }
 if (-not $NAME) { $NAME = (Get-Item .).Name }
+<<<<<<< HEAD
+=======
+if (-not $DRAFT_FLAG) { $DRAFT_FLAG = "false" }
+if (-not $PRERELEASE_FLAG) { $PRERELEASE_FLAG = "false" }
+if (-not $AUTO_COMMIT_REQUIREMENTS) { $AUTO_COMMIT_REQUIREMENTS = "true" }
+>>>>>>> ade42b7 (patch 1.0.1)
 
 # Extract repo from URL if not explicitly set
 $REPO = $null
@@ -543,3 +556,30 @@ git+$GITHUB_URL
 Set-Content -Path "requirements.txt" -Value $requirementsContent
 
 Info "requirements.txt updated with: git+$GITHUB_URL"
+
+# Auto-commit requirements.txt if enabled
+if ($AUTO_COMMIT_REQUIREMENTS.ToLower() -eq "true") {
+    Info "Auto-committing requirements.txt changes..."
+    try {
+        git add requirements.txt
+        if ($LASTEXITCODE -ne 0) {
+            Warn "Failed to git add requirements.txt"
+        } else {
+            git commit -m "Update requirements.txt for release $TAG"
+            if ($LASTEXITCODE -ne 0) {
+                Warn "Failed to commit requirements.txt (may be no changes)"
+            } else {
+                git push origin $TARGET_BRANCH
+                if ($LASTEXITCODE -ne 0) {
+                    Warn "Failed to push requirements.txt commit"
+                } else {
+                    Info "Successfully committed and pushed requirements.txt"
+                }
+            }
+        }
+    } catch {
+        Warn "Error during auto-commit: $($_.Exception.Message)"
+    }
+} else {
+    Info "Auto-commit disabled. Remember to commit requirements.txt manually if needed."
+}

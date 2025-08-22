@@ -107,6 +107,7 @@ target_branch: "main"        # Branch to release from
 release_notes_file: "README.md"  # File to use for release notes
 draft: false                 # Create as draft release
 prerelease: false           # Mark as prerelease
+auto_commit_requirements: true   # Auto git add, commit, and push requirements.txt after release
 ```
 
 ## Usage
@@ -167,6 +168,7 @@ piphub release
 - `piphub release` — Verify clean git state, tag and push, build (sdist+wheel), create/update GitHub release, and update requirements.txt
 
 6. **Updates `requirements.txt`** with install command
+7. **Auto-commits and pushes** requirements.txt (if enabled)
 
 ## Available Commands
 
@@ -232,6 +234,26 @@ entry_points: {
     ]
 }
 ```
+
+### Auto-commit Requirements
+
+By default, PipHub will automatically commit and push the updated `requirements.txt` file after creating a release:
+
+```yaml
+# Enable auto-commit (default: true)
+auto_commit_requirements: true
+
+# Disable auto-commit if you prefer manual control
+auto_commit_requirements: false
+```
+
+When enabled, PipHub will:
+1. Update `requirements.txt` with the new release install command
+2. `git add requirements.txt`
+3. `git commit -m "Update requirements.txt for release v1.0.0"`
+4. `git push origin main` (or your target branch)
+
+This ensures your repository always has the latest install instructions available.
 
 ## Migration from `release.yaml`
 
