@@ -41,7 +41,10 @@ jobs:
             VERSION="1.0.0"
           fi
           echo "Building package for version: $VERSION"
-          
+
+          # Clean up any existing .deb files to prevent multiple versions
+          rm -f debian-package/*.deb || true
+
           # Create control file
           cat > debian/piphub/DEBIAN/control << EOF
           Package: piphub
@@ -192,19 +195,25 @@ jobs:
           generate_release_notes: false
           fail_on_unmatched_files: false
           files: |
-            debian-package/*.deb
-            windows-package/*.zip
+            debian-package/piphub_${{ steps.tag.outputs.version }}_all.deb
+            piphub.ps1
+            piphub.bash
           body: |
             ## Installation Instructions
 
             ### Linux (Debian/Ubuntu)
             ```bash
-            # Download and install the .deb package
+            # Option 1: Install .deb package (recommended)
             wget https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/piphub_${{ steps.tag.outputs.version }}_all.deb
             sudo dpkg -i piphub_${{ steps.tag.outputs.version }}_all.deb
 
             # Or install dependencies if needed
             sudo apt-get install -f
+
+            # Option 2: Download bash script directly
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/piphub.bash
+            chmod +x piphub.bash
+            sudo mv piphub.bash /usr/local/bin/piphub
             ```
 
             ### Windows
