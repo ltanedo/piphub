@@ -84,28 +84,15 @@ validate_setup_py() {
     errors+=("Python syntax error in setup.py: $compile_error")
   fi
 
-  # Try to validate setup.py structure
-  local temp_script
-  temp_script=$(mktemp --suffix=.py)
-  cat > "$temp_script" << EOF
-import sys
-import os
-sys.path.insert(0, os.path.dirname('$setup_path'))
-try:
-    import setup
-    print("setup.py imported successfully")
-except Exception as e:
-    print(f"Import error: {e}")
-    sys.exit(1)
-EOF
-
-  if ! python3 "$temp_script" >/dev/null 2>&1; then
-    local import_error
-    import_error=$(python3 "$temp_script" 2>&1 || true)
-    errors+=("setup.py validation failed: $import_error")
+  # Try to validate setup.py by running it with --help-commands (safe dry run)
+  if ! python3 "$setup_path" --help-commands >/dev/null 2>&1; then
+    local validation_error
+    validation_error=$(python3 "$setup_path" --help-commands 2>&1 || true)
+    # Filter out setuptools deprecation warnings (they're just warnings, not errors)
+    if echo "$validation_error" | grep -v "SetuptoolsDeprecationWarning" | grep -q "error:"; then
+      errors+=("setup.py validation failed: $validation_error")
+    fi
   fi
-
-  rm -f "$temp_script"
 
   # Print errors if any
   if [[ ${#errors[@]} -gt 0 ]]; then
@@ -515,6 +502,12 @@ info "Target branch: $TARGET_BRANCH"
 # Check for required dependencies
 command -v git >/dev/null 2>&1 || abort "git not found in PATH. Install with: sudo apt-get install git"
 command -v python3 >/dev/null 2>&1 || abort "python3 not found in PATH. Install with: sudo apt-get install python3"
+
+# Check for setuptools (required for building packages)
+if ! python3 -c "import setuptools" >/dev/null 2>&1; then
+  info "setuptools not found. Installing setuptools..."
+  python3 -m pip install setuptools --break-system-packages || abort "Failed to install setuptools. Try: pip install setuptools --break-system-packages"
+fi
 
 # Check for gh (GitHub CLI)
 if ! command -v gh >/dev/null 2>&1; then

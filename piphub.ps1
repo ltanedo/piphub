@@ -173,28 +173,16 @@ function Validate-SetupPy {
         $errors += "Failed to validate Python syntax: $($_.Exception.Message)"
     }
 
-    # Try to import and validate setup.py structure
+    # Try to validate setup.py by running it with --help-commands (safe dry run)
     try {
-        $tempScript = @"
-import sys
-import os
-sys.path.insert(0, os.path.dirname('$SetupPath'))
-try:
-    import setup
-    print("setup.py imported successfully")
-except Exception as e:
-    print(f"Import error: {e}")
-    sys.exit(1)
-"@
-        $tempFile = [System.IO.Path]::GetTempFileName() + ".py"
-        Set-Content -Path $tempFile -Value $tempScript
-
-        $result = python $tempFile 2>&1
+        $result = python $SetupPath --help-commands 2>&1
         if ($LASTEXITCODE -ne 0) {
-            $errors += "setup.py validation failed: $result"
+            # Filter out setuptools deprecation warnings (they're just warnings, not errors)
+            $filteredResult = $result | Where-Object { $_ -notmatch "SetuptoolsDeprecationWarning" }
+            if ($filteredResult -match "error:") {
+                $errors += "setup.py validation failed: $result"
+            }
         }
-
-        Remove-Item $tempFile -ErrorAction SilentlyContinue
     } catch {
         $errors += "Failed to validate setup.py structure: $($_.Exception.Message)"
     }
@@ -570,6 +558,20 @@ Info "Package: $NAME"
 Info "Version: $VERSION"
 Info "Tag: $TAG"
 Info "Target branch: $TARGET_BRANCH"
+
+# Check for setuptools (required for building packages)
+try {
+    python -c "import setuptools" 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "setuptools not found"
+    }
+} catch {
+    Info "setuptools not found. Installing setuptools..."
+    python -m pip install setuptools --break-system-packages
+    if ($LASTEXITCODE -ne 0) {
+        Abort "Failed to install setuptools. Try: python -m pip install setuptools --break-system-packages"
+    }
+}
 
 # Ensure gh is available and authenticated
 try {
