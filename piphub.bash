@@ -216,7 +216,7 @@ EOF
     [[ "$line" =~ ^[[:space:]]*$ ]] && continue
 
     # Skip release-specific keys that aren't setup() args
-    [[ "$line" =~ ^[[:space:]]*(tag_prefix|target_branch|release_notes_file|draft|prerelease)[[:space:]]*: ]] && continue
+    [[ "$line" =~ ^[[:space:]]*(tag_prefix|target_branch|release_notes_file|draft|prerelease|auto_commit_requirements)[[:space:]]*: ]] && continue
 
     # Handle list continuation (both quoted and unquoted items)
     if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*\"(.*)\"[[:space:]]*,?[[:space:]]*$ ]] && [[ "$in_list" == true ]]; then

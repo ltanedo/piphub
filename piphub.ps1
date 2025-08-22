@@ -42,6 +42,10 @@ function Ok {
     param([string]$Message)
     Write-Host "[$CHECK] $Message" -ForegroundColor Green
 }
+function Warn {
+    param([string]$Message)
+    Write-Host "[!] $Message" -ForegroundColor Yellow
+}
 
 # Subcommand: init - create template piphub.yml
 if ($Command -eq 'init') {
@@ -165,23 +169,17 @@ $URL = Get-Yaml "url"
 $TAG_PREFIX = Get-Yaml "tag_prefix"
 $TARGET_BRANCH = Get-Yaml "target_branch"
 $RELEASE_NOTES_FILE = Get-Yaml "release_notes_file"
-<<<<<<< HEAD
-=======
 $DRAFT_FLAG = Get-Yaml "draft"
 $PRERELEASE_FLAG = Get-Yaml "prerelease"
 $AUTO_COMMIT_REQUIREMENTS = Get-Yaml "auto_commit_requirements"
->>>>>>> ade42b7 (patch 1.0.1)
 
 # Defaults
 if (-not $TAG_PREFIX) { $TAG_PREFIX = "v" }
 if (-not $TARGET_BRANCH) { $TARGET_BRANCH = "master" }
 if (-not $NAME) { $NAME = (Get-Item .).Name }
-<<<<<<< HEAD
-=======
 if (-not $DRAFT_FLAG) { $DRAFT_FLAG = "false" }
 if (-not $PRERELEASE_FLAG) { $PRERELEASE_FLAG = "false" }
 if (-not $AUTO_COMMIT_REQUIREMENTS) { $AUTO_COMMIT_REQUIREMENTS = "true" }
->>>>>>> ade42b7 (patch 1.0.1)
 
 # Extract repo from URL if not explicitly set
 $REPO = $null
@@ -251,7 +249,7 @@ setup(
         if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
 
         # Skip release-specific keys that aren't setup() args
-        if ($line -match '^\s*(tag_prefix|target_branch|release_notes_file|draft|prerelease)\s*:') { continue }
+        if ($line -match '^\s*(tag_prefix|target_branch|release_notes_file|draft|prerelease|auto_commit_requirements)\s*:') { continue }
 
         # Handle list continuation (both quoted and unquoted items)
         if ($line -match '^\s*-\s*"([^"]*)"[\s,]*$' -and $inList) {
