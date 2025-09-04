@@ -333,7 +333,7 @@ EOF
 
     # Collect entry_points content
     if [[ "$in_entry_points" == true ]]; then
-      # Check if we're still in entry_points section (indented lines)
+      # Check if we're still in entry_points section (indented lines or empty lines)
       if [[ "$line" =~ ^[[:space:]]{2,} ]] || [[ "$line" =~ ^[[:space:]]*$ ]]; then
         if [[ "$line" =~ ^[[:space:]]*console_scripts[[:space:]]*:[[:space:]]*$ ]]; then
           # Skip the console_scripts header
@@ -358,7 +358,7 @@ EOF
         fi
         in_entry_points=false
         entry_points_content=()
-        # Continue processing this line as normal
+        # Don't continue - we need to process this line normally since it's the next section
       fi
     fi
 
