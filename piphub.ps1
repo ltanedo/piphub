@@ -383,9 +383,11 @@ setup(
     $content = Get-Content $CFG
     $inList = $false
     $inDict = $false
+    $inEntryPoints = $false
     $currentKey = ""
     $listItems = @()
     $dictItems = @()
+    $entryPointsContent = @()
 
     foreach ($line in $content) {
         # Skip comments and empty lines
@@ -393,6 +395,37 @@ setup(
 
         # Skip release-specific keys that aren't setup() args
         if ($line -match '^\s*(tag_prefix|target_branch|release_notes_file|draft|prerelease|auto_commit_requirements)\s*:') { continue }
+
+        # Handle entry_points section specially
+        if ($line -match '^\s*entry_points\s*:\s*$') {
+            $inEntryPoints = $true
+            $entryPointsContent = @()
+            continue
+        }
+
+        # Collect entry_points content
+        if ($inEntryPoints) {
+            # Check if we're still in entry_points section (indented lines)
+            if ($line -match '^\s{2,}' -or $line -match '^\s*$') {
+                if ($line -match '^\s*console_scripts\s*:\s*$') {
+                    # Skip the console_scripts header
+                    continue
+                } elseif ($line -match '^\s*-\s*"([^"]+)"\s*$') {
+                    # Extract console script entry
+                    $entryPointsContent += $matches[1]
+                }
+                continue
+            } else {
+                # End of entry_points section, generate the entry
+                if ($entryPointsContent.Count -gt 0) {
+                    $consoleScripts = ($entryPointsContent | ForEach-Object { "`"$_`"" }) -join ', '
+                    $setupContent += "    entry_points={`"console_scripts`": [$consoleScripts]},`n"
+                }
+                $inEntryPoints = $false
+                $entryPointsContent = @()
+                # Continue processing this line as normal
+            }
+        }
 
         # Handle list continuation (both quoted and unquoted items)
         if ($line -match '^\s*-\s*"([^"]*)"[\s,]*$' -and $inList) {
@@ -438,8 +471,8 @@ setup(
             continue
         }
 
-        # Parse key: value
-        if ($line -match '^\s*([^:]+):\s*(.*)$') {
+        # Parse key: value (skip if we're in entry_points mode)
+        if ($line -match '^\s*([^:]+):\s*(.*)$' -and -not $inEntryPoints) {
             $key = $matches[1].Trim()
             $value = $matches[2].Trim()
 

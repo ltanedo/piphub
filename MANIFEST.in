@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include piphub.yml
+include piphub.bash
+include piphub.ps1
+recursive-include piphub *.py
+recursive-include .github *.yml *.yaml
+recursive-include debian *
+recursive-include winget *.yaml

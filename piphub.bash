@@ -310,9 +310,11 @@ EOF
   # Parse YAML and handle complex structures
   local in_list=false
   local in_dict=false
+  local in_entry_points=false
   local current_key=""
   local list_items=()
   local dict_items=()
+  local entry_points_content=()
 
   while IFS= read -r line; do
     # Skip comments and empty lines
@@ -321,6 +323,44 @@ EOF
 
     # Skip release-specific keys that aren't setup() args
     [[ "$line" =~ ^[[:space:]]*(tag_prefix|target_branch|release_notes_file|draft|prerelease|auto_commit_requirements)[[:space:]]*: ]] && continue
+
+    # Handle entry_points section specially
+    if [[ "$line" =~ ^[[:space:]]*entry_points[[:space:]]*:[[:space:]]*$ ]]; then
+      in_entry_points=true
+      entry_points_content=()
+      continue
+    fi
+
+    # Collect entry_points content
+    if [[ "$in_entry_points" == true ]]; then
+      # Check if we're still in entry_points section (indented lines)
+      if [[ "$line" =~ ^[[:space:]]{2,} ]] || [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        if [[ "$line" =~ ^[[:space:]]*console_scripts[[:space:]]*:[[:space:]]*$ ]]; then
+          # Skip the console_scripts header
+          continue
+        elif [[ "$line" =~ ^[[:space:]]*-[[:space:]]*\"([^\"]+)\"[[:space:]]*$ ]]; then
+          # Extract console script entry
+          entry_points_content+=("${BASH_REMATCH[1]}")
+        fi
+        continue
+      else
+        # End of entry_points section, generate the entry
+        if [[ ${#entry_points_content[@]} -gt 0 ]]; then
+          local console_scripts=""
+          for script in "${entry_points_content[@]}"; do
+            if [[ -n "$console_scripts" ]]; then
+              console_scripts="$console_scripts, \"$script\""
+            else
+              console_scripts="\"$script\""
+            fi
+          done
+          echo "    entry_points={\"console_scripts\": [$console_scripts]}," >> setup.py
+        fi
+        in_entry_points=false
+        entry_points_content=()
+        # Continue processing this line as normal
+      fi
+    fi
 
     # Handle list continuation (both quoted and unquoted items)
     if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*\"(.*)\"[[:space:]]*,?[[:space:]]*$ ]] && [[ "$in_list" == true ]]; then
@@ -375,8 +415,8 @@ EOF
       continue
     fi
 
-    # Parse key: value
-    if [[ "$line" =~ ^[[:space:]]*([^:]+):[[:space:]]*(.*)$ ]]; then
+    # Parse key: value (skip if we're in entry_points mode)
+    if [[ "$line" =~ ^[[:space:]]*([^:]+):[[:space:]]*(.*)$ ]] && [[ "$in_entry_points" != true ]]; then
       key="${BASH_REMATCH[1]}"
       key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')  # Trim whitespace properly
       value="${BASH_REMATCH[2]}"

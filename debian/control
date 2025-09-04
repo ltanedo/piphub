@@ -4,9 +4,9 @@ Priority: optional
 Maintainer: ltanedo <lloydtan@buffalo.edu>
 Build-Depends: debhelper-compat (= 13)
 Standards-Version: 4.6.0
-Homepage: https://github.com/ltanedo/clify-py
-Vcs-Browser: https://github.com/ltanedo/clify-py
-Vcs-Git: https://github.com/ltanedo/clify-py.git
+Homepage: https://github.com/ltanedo/piphub
+Vcs-Browser: https://github.com/ltanedo/piphub
+Vcs-Git: https://github.com/ltanedo/piphub.git
 
 Package: piphub
 Architecture: all

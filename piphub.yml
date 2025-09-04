@@ -3,54 +3,57 @@
 
 # Required setup() arguments
 name: "piphub"
-version: "1.0.1"
+version: "1.1.0"
 author: "Luis Tanedo"
-author_email: "your.email@example.com"
-description: "PipHub - Python package release automation tool"
+author_email: "lloydtan@buffalo.edu"
+description: "Python package release automation tool for GitHub"
 url: "https://github.com/ltanedo/piphub"
 
 # Optional setup() arguments
 license: "MIT"
 long_description_content_type: "text/markdown"
-python_requires: ">=3.6"
+python_requires: ">=3.7"
 
-# Package discovery (uncomment and modify as needed)
-# py_modules: ["single_module"]  # For single-file packages
+# Entry points to expose a CLI on install
+entry_points:
+  console_scripts:
+    - "piphub=piphub.__main__:main"
+
+# Package discovery
 # packages will be auto-discovered with find_packages()
 
 # Dependencies (use YAML list format)
-# Examples:
-#   install_requires: ["requests>=2.25.0", "pyyaml>=5.4.0"]
-#   install_requires: []  # for no dependencies
-install_requires: []  # Add your package dependencies here
+install_requires: []
 
-# Keywords for PyPI (comma-separated string or YAML list)
-keywords: "python, package, automation, tools"
+# Keywords for PyPI
+keywords: ["github", "release", "automation", "python", "packaging", "ci-cd", "deployment"]
 
-# Classifiers for PyPI (modify as appropriate for your package)
+# Classifiers for PyPI
 classifiers: [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Utilities"
+    "Topic :: System :: Software Distribution"
 ]
 
-# Project URLs (update with your repository URLs)
+# Project URLs
 project_urls: {
     "Bug Reports": "https://github.com/ltanedo/piphub/issues",
     "Source": "https://github.com/ltanedo/piphub",
     "Documentation": "https://github.com/ltanedo/piphub#readme"
 }
 
-# Release-specific settings (not part of setup() function)
+# Release-specific settings (not part of setup())
 tag_prefix: "v"
 target_branch: "master"
 release_notes_file: "README.md"
